@@ -41,5 +41,9 @@ namespace ProyectoPasantiaRI.Server.Models
         {
             Estado = EstadoSolicitud.Rechazada;
         }
+        public void MarcarRespuestaUsuario()
+        {
+            Estado = EstadoSolicitud.RespuestaUsuario;
+        }
     }
 }

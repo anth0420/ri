@@ -7,6 +7,7 @@
         EnRevision = 2,
         Aprobada = 3,
         Rechazada = 4,
-        PendienteRespuesta = 5
+        PendienteRespuesta = 5,
+        RespuestaUsuario = 6
     }
 }

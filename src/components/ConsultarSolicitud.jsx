@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import "../styles/ConsultarSolicitud.css";
 import logo from "../assets/logo.png";
 import SuccessModal from "./SuccessModal";
@@ -16,6 +16,20 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
     const EXTENSIONES_PERMITIDAS = [".pdf", ".jpg", ".jpeg", ".png"];
     const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
+
+    // ✅ Leer parámetro de URL al cargar el componente
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.hash.split('?')[1]);
+        const numeroParam = params.get('numero');
+
+        if (numeroParam && /^\d{7}$/.test(numeroParam)) {
+            setNumeroSolicitud(numeroParam);
+            // Buscar automáticamente después de un pequeño delay
+            setTimeout(() => {
+                buscarSolicitudPorNumero(numeroParam);
+            }, 500);
+        }
+    }, []);
 
     // ✅ EXACTAMENTE 7 dígitos
     const esNumeroValido = /^\d{7}$/.test(numeroSolicitud);
@@ -36,13 +50,16 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
     const buscarSolicitud = async () => {
         if (!esNumeroValido) return;
+        await buscarSolicitudPorNumero(numeroSolicitud);
+    };
 
+    const buscarSolicitudPorNumero = async (numero) => {
         setLoading(true);
         setError("");
 
         try {
             const response = await fetch(
-                `${API_URL}/api/Solicitudes/${numeroSolicitud}`
+                `${API_URL}/api/Solicitudes/${numero}`
             );
 
             if (!response.ok) {
@@ -65,7 +82,8 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
             2: "En Revisión",
             3: "Aprobada",
             4: "Rechazada",
-            5: "Pendiente de respuesta"
+            5: "Pendiente de respuesta",
+            6: "Respuesta de usuario"
         };
         return estados[estadoNumerico] || "Desconocido";
     };
@@ -79,23 +97,21 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
             return obtenerNombreEstado(solicitud.estado);
         }
 
-        // Si hay historial de correcciones, mostrar "Pendiente de respuesta"
-        if (solicitud.historial?.length > 0) {
-            return "Pendiente de respuesta";
-        }
-
-        // Si no hay historial, mostrar el estado actual o "Pendiente"
+        // Si es string, devolverlo directamente
         return solicitud.estado || "Pendiente";
     };
 
-    // Verificar si puede subir archivos
+    // ✅ SOLO puede subir archivos si estado === 5 (PendienteRespuesta)
     const puedeSubirArchivos = () => {
         if (!solicitud) return false;
 
-        // Verificar si el estado es 5 (PendienteRespuesta) o si tiene historial
-        return solicitud.estado === 5 ||
-            solicitud.estado === "PendienteRespuesta" ||
-            solicitud.historial?.length > 0;
+        // Verificar si el estado es 5 (PendienteRespuesta)
+        if (typeof solicitud.estado === 'number') {
+            return solicitud.estado === 5;
+        }
+
+        // Si el estado es string, verificar también
+        return solicitud.estado === "PendienteRespuesta" || solicitud.estado === "Pendiente de respuesta";
     };
 
     // Validar archivo
@@ -207,9 +223,10 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
             );
 
             if (response.ok) {
-                // Recargar la solicitud
-                await buscarSolicitud();
+                setSuccess("Documentos enviados exitosamente. Su solicitud ha sido actualizada.");
                 setArchivosNuevos([]);
+                // Recargar la solicitud para ver el nuevo estado
+                await buscarSolicitudPorNumero(numeroSolicitud);
             } else {
                 const errorData = await response.text();
                 setError(`Error al actualizar archivos: ${errorData}`);
@@ -276,10 +293,14 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         <label>Estado</label>
                         <input readOnly className="input-consulta" value={estadoMostrar()} />
                     </div>
-                    {/* Sección para subir archivos actualizados */}
+
+                    {/* Sección para subir archivos actualizados - SOLO si estado === 5 */}
                     {puedeSubirArchivos() && (
                         <div className="section-consulta">
                             <div className="section-title">Actualizar documentos</div>
+                            <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
+                                Su solicitud requiere correcciones. Por favor, cargue los documentos actualizados.
+                            </p>
                             <div
                                 className={`upload-box-consulta ${isDragging ? 'dragging' : ''}`}
                                 onDragOver={handleDragOver}
@@ -387,10 +408,10 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         <div className="section-consulta">
                             <div className="section-title">Historial de correcciones</div>
                             <div className="historial-list">
-                                {solicitud.historial.map((item) => (
-                                    <div key={item.id} className="historial-item">
+                                {solicitud.historial.map((item, index) => (
+                                    <div key={index} className="historial-item">
                                         <div className="historial-fecha">
-                                            {new Date(item.fecha).toLocaleDateString('es-DO', {
+                                            {new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -403,7 +424,7 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         </div>
                     )}
                 </div>
-                    
+
             </div>
         </div>
     );
