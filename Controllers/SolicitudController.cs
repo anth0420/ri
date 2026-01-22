@@ -47,15 +47,41 @@ namespace ProyectoPasantiaRI.Server.Controllers
             await _solicitudService.CrearSolicitudAsync(solicitud);
             await GuardarArchivos(dto.Archivos.ToList(), solicitud.Id, true);
 
-            // ✅ NO BLOQUEA - Encola el correo para envío en 10 segundos
-            _emailService.EnviarCorreoSolicitudCreada(solicitud);
+            // Fire-and-forget: enviar correo en segundo plano
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.EnviarCorreoSolicitudCreadaAsync(solicitud);
+                }
+                catch (Exception ex)
+                {
+                    // Aquí puedes registrar el error en logs, no relanzar
+                    Console.WriteLine($"Error enviando correo: {ex.Message}");
+                }
+            });
 
-            // ✅ Responde inmediatamente
+            // Responder inmediatamente
             return Ok(new
             {
                 solicitud.Id,
                 solicitud.NumeroSolicitud
             });
+        }
+
+        // =====================================
+        // Gestionar todas las solicitudes
+        // =====================================
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerSolicitudes()
+        {
+            var solicitud = await _context.Solicitudes.ToListAsync();
+
+            if (solicitud == null)
+                return NotFound("No se encontraron Solicitudes");
+
+            return Ok(solicitud);
         }
 
         // =========================
@@ -79,7 +105,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 Cedula = solicitud.Cedula,
                 Nombre = solicitud.Nombre,
                 Correo = solicitud.Correo,
-                Estado = (int)solicitud.Estado,
+                Estado = (int)solicitud.Estado, // Devolver como número
                 ArchivosActuales = solicitud.Archivos
                     .Where(a => a.EsActual)
                     .Select(a => new SolicitudArchivoResponseDto
@@ -99,7 +125,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
         }
 
         // =========================
-        // USUARIO ENVÍA CORRECCIÓN
+        // USUARIO ENVÍA CORRECCIÓN (Solo si estado = PendienteRespuesta)
         // =========================
         [HttpPost("{numeroSolicitud}/archivos")]
         [Consumes("multipart/form-data")]
@@ -114,6 +140,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
             if (solicitud == null)
                 return NotFound("Solicitud no encontrada");
 
+            // ✅ Verificar que el estado sea PendienteRespuesta (5)
             if (solicitud.Estado != EstadoSolicitud.PendienteRespuesta)
             {
                 return BadRequest("Solo se pueden enviar correcciones cuando la solicitud está en estado 'Pendiente de respuesta'");
@@ -126,6 +153,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 Comentario = "Corrección enviada por el usuario"
             };
 
+            // Marcar archivos actuales como históricos
             foreach (var archivo in solicitud.Archivos.Where(a => a.EsActual))
             {
                 archivo.EsActual = false;
@@ -133,19 +161,35 @@ namespace ProyectoPasantiaRI.Server.Controllers
             }
 
             _context.SolicitudHistorials.Add(historial);
+
+            // Guardar nuevos archivos
             await GuardarArchivos(dto.Archivos, solicitud.Id, true);
 
+            // ✅ Cambiar estado a RespuestaUsuario (6)
             solicitud.MarcarRespuestaUsuario();
             await _context.SaveChangesAsync();
 
-            // ✅ NO BLOQUEA - Encola el correo
-            _emailService.EnviarCorreoEstadoActualizado(solicitud, "Respuesta de usuario");
+            // Fire-and-forget: enviar correo en segundo plano
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.EnviarCorreoEstadoActualizadoAsync(solicitud,
+                        "Respuesta de usuario"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    // Aquí puedes registrar el error en logs, no relanzar
+                    Console.WriteLine($"Error enviando correo: {ex.Message}");
+                }
+            });
 
             return Ok("Corrección enviada correctamente");
         }
 
         // =========================
-        // DNMC DEVUELVE SOLICITUD
+        // DNMC DEVUELVE SOLICITUD (Cambia estado a PendienteRespuesta)
         // =========================
         [HttpPost("{solicitudId}/devolver")]
         public async Task<IActionResult> DevolverSolicitud(
@@ -166,20 +210,65 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 Comentario = comentario
             };
 
+            // Marcar archivos actuales como históricos
             foreach (var archivo in solicitud.Archivos.Where(a => a.EsActual))
             {
                 archivo.EsActual = false;
                 archivo.SolicitudHistorial = historial;
             }
 
+            // ✅ Cambiar estado a PendienteRespuesta (5) para que el usuario pueda responder
             solicitud.MarcarPendienteRespuesta();
+
             _context.SolicitudHistorials.Add(historial);
             await _context.SaveChangesAsync();
 
-            // ✅ NO BLOQUEA - Encola el correo
-            _emailService.EnviarCorreoDevolucion(solicitud, comentario);
+
+            // Fire-and-forget: enviar correo en segundo plano
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.EnviarCorreoDevolucionAsync(solicitud,comentario);
+                }
+                catch (Exception ex)
+                {
+                    // Aquí puedes registrar el error en logs, no relanzar
+                    Console.WriteLine($"Error enviando correo: {ex.Message}");
+                }
+            });
 
             return Ok("Solicitud devuelta al usuario");
+        }
+        [HttpGet("archivo/{archivoId}")]
+        public async Task<IActionResult> DescargarArchivo(int archivoId)
+        {
+            var archivo = await _context.SolicitudArchivos
+                .FirstOrDefaultAsync(a => a.Id == archivoId);
+
+            if (archivo == null)
+                return NotFound("Archivo no encontrado");
+
+            var uploadsPath = Path.Combine(_env.ContentRootPath, "uploads");
+            var filePath = Path.Combine(uploadsPath, archivo.Ruta);
+
+            if (!System.IO.File.Exists(filePath))
+                return NotFound("El archivo no existe en el servidor");
+
+            var extension = Path.GetExtension(archivo.NombreArchivo).ToLower();
+
+            var contentType = extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+            return File(fileBytes, contentType, archivo.NombreArchivo);
         }
 
         // =========================

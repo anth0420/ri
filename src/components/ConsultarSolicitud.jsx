@@ -4,7 +4,7 @@ import logo from "../assets/logo.png";
 import SuccessModal from "./SuccessModal";
 const API_URL = "http://localhost:5195";
 
-const ConsultarSolicitud = ({ onNavigation, onClose }) => {
+const ConsultarSolicitud = ({ onNavigation }) => {
     const [numeroSolicitud, setNumeroSolicitud] = useState("");
     const [solicitud, setSolicitud] = useState(null);
     const [error, setError] = useState("");
@@ -24,14 +24,12 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
         if (numeroParam && /^\d{7}$/.test(numeroParam)) {
             setNumeroSolicitud(numeroParam);
-            // Buscar automáticamente después de un pequeño delay
             setTimeout(() => {
                 buscarSolicitudPorNumero(numeroParam);
             }, 500);
         }
     }, []);
 
-    // ✅ EXACTAMENTE 7 dígitos
     const esNumeroValido = /^\d{7}$/.test(numeroSolicitud);
 
     const handleNumeroChange = (e) => {
@@ -75,7 +73,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
         }
     };
 
-    // Mapeo de estados del enum
     const obtenerNombreEstado = (estadoNumerico) => {
         const estados = {
             1: "Nueva",
@@ -88,33 +85,26 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
         return estados[estadoNumerico] || "Desconocido";
     };
 
-    // Estado 
     const estadoMostrar = () => {
         if (!solicitud) return "";
 
-        // Si el estado es numérico, convertirlo a texto
         if (typeof solicitud.estado === 'number') {
             return obtenerNombreEstado(solicitud.estado);
         }
 
-        // Si es string, devolverlo directamente
         return solicitud.estado || "Pendiente";
     };
 
-    // ✅ SOLO puede subir archivos si estado === 5 (PendienteRespuesta)
     const puedeSubirArchivos = () => {
         if (!solicitud) return false;
 
-        // Verificar si el estado es 5 (PendienteRespuesta)
         if (typeof solicitud.estado === 'number') {
             return solicitud.estado === 5;
         }
 
-        // Si el estado es string, verificar también
         return solicitud.estado === "PendienteRespuesta" || solicitud.estado === "Pendiente de respuesta";
     };
 
-    // Validar archivo
     const validarArchivo = (file) => {
         const extension = "." + file.name.split(".").pop().toLowerCase();
 
@@ -129,7 +119,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
         return null;
     };
 
-    // Manejar selección de archivos
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -155,7 +144,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
         setArchivosNuevos([...archivosNuevos, ...nuevosArchivos]);
     };
 
-    // Drag and drop
     const handleDragOver = (e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -193,12 +181,10 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
         setArchivosNuevos([...archivosNuevos, ...nuevosArchivos]);
     };
 
-    // Eliminar archivo de la lista
     const eliminarArchivo = (index) => {
         setArchivosNuevos(archivosNuevos.filter((_, i) => i !== index));
     };
 
-    // Enviar archivos actualizados
     const enviarArchivosActualizados = async () => {
         if (archivosNuevos.length === 0) {
             setError("Debes cargar al menos un documento.");
@@ -207,13 +193,12 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
         setEnviandoArchivos(true);
         setError("");
-
-        const formData = new FormData();
-        archivosNuevos.forEach((archivo) => {
-            formData.append("Archivos", archivo);
-        });
+        setSuccess("");
 
         try {
+            const formData = new FormData();
+            archivosNuevos.forEach((archivo) => formData.append("Archivos", archivo));
+
             const response = await fetch(
                 `${API_URL}/api/Solicitudes/${numeroSolicitud}/archivos`,
                 {
@@ -223,10 +208,9 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
             );
 
             if (response.ok) {
-                setSuccess("Documentos enviados exitosamente. Su solicitud ha sido actualizada.");
                 setArchivosNuevos([]);
-                // Recargar la solicitud para ver el nuevo estado
                 await buscarSolicitudPorNumero(numeroSolicitud);
+                setSuccess("Documentos enviados exitosamente. Su solicitud ha sido actualizada.");
             } else {
                 const errorData = await response.text();
                 setError(`Error al actualizar archivos: ${errorData}`);
@@ -240,13 +224,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
     return (
         <div>
-            <SuccessModal
-                message={success}
-                onClose={() => {
-                    setSuccess("");
-                    onNavigation('/');
-                }}
-            />
             <div className="modal-overlay">
                 <div className="consulta-container">
                     <div className="consulta-header">
@@ -257,7 +234,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
 
                     {error && <div className="error-message-consulta">{error}</div>}
 
-                    {/* Número de solicitud */}
                     <div className="form-group-consulta">
                         <label>Número de solicitud</label>
                         <div className="input-wrapper">
@@ -278,7 +254,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Campos solo lectura */}
                     <div className="form-group-consulta">
                         <label>Nombre completo</label>
                         <input readOnly className="input-consulta" value={solicitud?.nombre || ""} />
@@ -294,7 +269,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         <input readOnly className="input-consulta" value={estadoMostrar()} />
                     </div>
 
-                    {/* Sección para subir archivos actualizados - SOLO si estado === 5 */}
                     {puedeSubirArchivos() && (
                         <div className="section-consulta">
                             <div className="section-title">Actualizar documentos</div>
@@ -371,17 +345,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         </div>
                     )}
 
-                    <button
-                        className="btn-aceptar"
-                        onClick={() => {
-                            onClose();
-                            window.location.href = "/";
-                        }}
-                    >
-                        Aceptar
-                    </button>
-
-                    {/* Documentos cargados */}
                     {solicitud?.archivosActuales?.length > 0 && (
                         <div className="section-consulta">
                             <div className="section-title">Documentos de la solicitud</div>
@@ -403,7 +366,6 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                         </div>
                     )}
 
-                    {/* Historial de correcciones */}
                     {solicitud?.historial?.length > 0 && (
                         <div className="section-consulta">
                             <div className="section-title">Historial de correcciones</div>
@@ -423,9 +385,24 @@ const ConsultarSolicitud = ({ onNavigation, onClose }) => {
                             </div>
                         </div>
                     )}
-                </div>
 
+                    <button
+                        className="btn-aceptar"
+                        onClick={() => onNavigation('/')}
+                    >
+                        Aceptar
+                    </button>
+                </div>
             </div>
+
+            {/* ✅ Modal movido FUERA del modal-overlay para que aparezca por encima */}
+            <SuccessModal
+                message={success}
+                onClose={() => {
+                    setSuccess("");
+                    onNavigation('/');
+                }}
+            />
         </div>
     );
 };
