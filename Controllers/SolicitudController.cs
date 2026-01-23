@@ -39,7 +39,8 @@ namespace ProyectoPasantiaRI.Server.Controllers
             {
                 Cedula = dto.Cedula,
                 Nombre = dto.Nombre,
-                Correo = dto.Correo
+                Correo = dto.Correo,
+                FechaCreacion = DateTime.Now
             };
 
             solicitud.MarcarNueva();
@@ -56,8 +57,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 }
                 catch (Exception ex)
                 {
-                    // Aquí puedes registrar el error en logs, no relanzar
-                    Console.WriteLine($"Error enviando correo: {ex.Message}");
+
                 }
             });
 

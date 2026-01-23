@@ -10,6 +10,8 @@ namespace ProyectoPasantiaRI.Server.Models
         public string Nombre { get; set; } = null!;
         public string Correo { get; set; } = null!;
         public string NumeroSolicitud { get; private set; }
+        public DateTime FechaCreacion { get; set; }
+
 
         public EstadoSolicitud Estado { get; private set; } 
 

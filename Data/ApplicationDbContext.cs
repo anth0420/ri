@@ -23,6 +23,10 @@ namespace ProyectoPasantiaRI.Server.Data
             modelBuilder.Entity<Solicitud>()
                 .HasIndex(s => s.NumeroSolicitud)
                 .IsUnique();
+
+            modelBuilder.Entity<Solicitud>()
+                .Property(s => s.FechaCreacion)
+                .HasDefaultValueSql("GETDATE()");
         }
 
     }

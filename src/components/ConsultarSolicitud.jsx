@@ -2,6 +2,8 @@
 import "../styles/ConsultarSolicitud.css";
 import logo from "../assets/logo.png";
 import SuccessModal from "./SuccessModal";
+
+
 const API_URL = "http://localhost:5195";
 
 const ConsultarSolicitud = ({ onNavigation }) => {

@@ -61,6 +61,14 @@ const ExencionPasantia = ({ onNavigate = (path) => console.log('Navigate to', pa
           >
             Verificar estatus de<br />solicitud
           </button>
+
+        <button
+            className="btn-secondary"
+                      onClick={() => onNavigate('/gestor-solicitudes')}
+            type="button"
+        >
+            Gestor de <br />solicitudes
+        </button>
         </div>
 
       </div>
