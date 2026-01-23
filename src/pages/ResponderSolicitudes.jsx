@@ -1,7 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import '../styles/ResponderSolicitudes.css'
+import { useParams } from "react-router-dom"; 
 
 const API_URL = 'http://localhost:5195';
+const { numeroSolicitud } = useParams(); }
 
 const RespuestaSolicitud = ({ numeroSolicitud, onBack }) => {
     /* ===============================
