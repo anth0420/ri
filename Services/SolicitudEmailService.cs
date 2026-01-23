@@ -117,15 +117,6 @@ namespace ProyectoPasantiaRI.Server.Services
                             color: #333;
                             margin: 30px 0;
                         }}
-                        .estado {{
-                            font-size: 18px;
-                            color: #2563eb;
-                            font-weight: bold;
-                            margin: 25px 0;
-                            padding: 15px;
-                            background-color: #eff6ff;
-                            border-radius: 8px;
-                        }}
                         .solicitud-number {{
                             font-size: 15px;
                             color: #333;
@@ -150,18 +141,13 @@ namespace ProyectoPasantiaRI.Server.Services
                         <div class='logo'>
                             <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
                         </div>
-
                         <p class='message'>
-                            El estado de tu solicitud ha sido actualizado.
+                            La correcion de la solicitud de Certificacion de Extension de Pasantia Numero <strong>{0}</strong> 
+                            ha sido enviada exitosamente.
                         </p>
-
-                        <p class='solicitud-number'>
-                            Número de Solicitud: <strong>[{0}]</strong>
+                        <p class='message'>
+                            Recibirás una notificación por correo electrónico tan pronto el estado sea actualizado.
                         </p>
-
-                        <div class='estado'>
-                            Nuevo Estado: {1}
-                        </div>
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
@@ -279,7 +265,7 @@ namespace ProyectoPasantiaRI.Server.Services
                         </p>
 
                         <div class='comment-section'>
-                            <div class='comment-label'>[comentario de devolución de la DNMC]</div>
+                            <div class='comment-label'>comentario de devolución de la DNMC</div>
                             <div class='comment-text'>{1}</div>
                         </div>
 
@@ -363,7 +349,7 @@ namespace ProyectoPasantiaRI.Server.Services
             var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
             
             // ✅ URL con el número de solicitud como parámetro para prellenar el formulario
-            var urlConsulta = $"{frontendUrl}/verificar-estatus/{solicitud.NumeroSolicitud}";
+            var urlConsulta = $"{frontendUrl}/verificar-estatus/";
 
             var cuerpoCorreo = string.Format(
                 TEMPLATE_DEVOLUCION,
