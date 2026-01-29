@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 
 namespace ProyectoPasantiaRI.Server.Services
 {
@@ -13,65 +14,111 @@ namespace ProyectoPasantiaRI.Server.Services
         }
 
         /// <summary>
-        /// Envía correo de manera verdaderamente asíncrona sin bloquear
+        /// Envía correo simple sin adjuntos
         /// </summary>
-        public async Task EnviarCorreoAsync(string para, string asunto, string cuerpoHtml)
+        public async Task EnviarCorreoAsync(string destinatario, string asunto, string cuerpoHtml)
         {
-            // Ejecutar en un hilo separado para evitar bloqueo
-            await Task.Run(async () =>
+            var smtpConfig = _config.GetSection("MailSettings");
+            var servidor = smtpConfig["MailServer"];
+            var puerto = int.Parse(smtpConfig["MailPort"]);
+            var usuario = smtpConfig["MailAccount"]; // solo para autenticación
+            var contrasena = smtpConfig["MailPassword"];
+            var remitente = smtpConfig["MailFrom"];  // correo válido mostrado al destinatario
+            var habilitarSsl = false; // Puerto 25 normalmente no usa SSL
+
+            using var cliente = new SmtpClient(servidor, puerto)
             {
-                try
+                Credentials = new NetworkCredential(usuario, contrasena),
+                EnableSsl = habilitarSsl
+            };
+
+            var mensaje = new MailMessage
+            {
+                From = new MailAddress(remitente, "Registro Inmobiliario"), // ⚡ Aquí usamos MailFrom
+                Subject = asunto,
+                Body = cuerpoHtml,
+                IsBodyHtml = true
+            };
+
+            mensaje.To.Add(destinatario);
+
+            await cliente.SendMailAsync(mensaje);
+        }
+
+        /// <summary>
+        /// Envía correo con archivos adjuntos
+        /// </summary>
+        public async Task EnviarCorreoConAdjuntosAsync(
+            string destinatario,
+            string asunto,
+            string cuerpoHtml,
+            List<string> rutasArchivos)
+        {
+            var smtpConfig = _config.GetSection("MailSettings");
+            var servidor = smtpConfig["MailServer"];
+            var puerto = int.Parse(smtpConfig["MailPort"]);
+            var usuario = smtpConfig["MailAccount"]; // autenticación
+            var contrasena = smtpConfig["MailPassword"];
+            var remitente = smtpConfig["MailFrom"]; // correo válido
+            var habilitarSsl = false; // puerto 25
+
+            using var cliente = new SmtpClient(servidor, puerto)
+            {
+                Credentials = new NetworkCredential(usuario, contrasena),
+                EnableSsl = habilitarSsl
+            };
+
+            var mensaje = new MailMessage
+            {
+                From = new MailAddress(remitente, "Registro Inmobiliario"), // ⚡ MailFrom usado
+                Subject = asunto,
+                Body = cuerpoHtml,
+                IsBodyHtml = true
+            };
+
+            mensaje.To.Add(destinatario);
+
+            // Adjuntar archivos
+            foreach (var rutaArchivo in rutasArchivos)
+            {
+                if (File.Exists(rutaArchivo))
                 {
-                    // Validaciones básicas
-                    var from = _config["MailSettings:MailFrom"];
-                    if (string.IsNullOrWhiteSpace(from))
-                        throw new Exception("MailFrom no está configurado en appsettings.json");
+                    var adjunto = new Attachment(rutaArchivo);
 
-                    var host = _config["MailSettings:MailServer"];
-                    if (string.IsNullOrWhiteSpace(host))
-                        throw new Exception("MailServer no está configurado en appsettings.json");
-
-                    // Validar y limpiar correo destinatario
-                    if (string.IsNullOrWhiteSpace(para))
-                        throw new ArgumentException("El correo del destinatario no puede estar vacío");
-
-                    para = para.Trim();
-                    if (!System.Text.RegularExpressions.Regex.IsMatch(para, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-                        throw new ArgumentException($"El correo '{para}' no tiene un formato válido");
-
-                    using var mailMessage = new MailMessage
+                    var extension = Path.GetExtension(rutaArchivo).ToLower();
+                    adjunto.ContentType = extension switch
                     {
-                        From = new MailAddress(from),
-                        Subject = asunto,
-                        Body = cuerpoHtml,
-                        IsBodyHtml = true
-                    };
-                    mailMessage.To.Add(new MailAddress(para));
-
-                    using var smtp = new SmtpClient
-                    {
-                        Host = host,
-                        Port = int.Parse(_config["MailSettings:MailPort"]),
-                        EnableSsl = false,
-                        DeliveryMethod = SmtpDeliveryMethod.Network,
-                        UseDefaultCredentials = false,
-                        Credentials = new NetworkCredential(
-                            from,
-                            _config["MailSettings:MailPassword"],
-                            "suprema-ji"
-                        ),
-                        Timeout = 10000 // 20 segundos timeout
+                        ".pdf" => new ContentType("application/pdf"),
+                        ".jpg" or ".jpeg" => new ContentType("image/jpeg"),
+                        ".png" => new ContentType("image/png"),
+                        _ => new ContentType("application/octet-stream")
                     };
 
-                    // Envío asíncrono real
-                    await smtp.SendMailAsync(mailMessage);
+                    adjunto.Name = Path.GetFileName(rutaArchivo);
+                    mensaje.Attachments.Add(adjunto);
                 }
-                catch (Exception ex)
+                else
                 {
-                    // Re-lanzar para que EmailBackgroundService lo capture
-                    throw new Exception($"Error al enviar correo: {ex.Message}", ex);
+                    Console.WriteLine($"⚠️ Archivo no encontrado: {rutaArchivo}");
                 }
-            }).ConfigureAwait(false); // ConfigureAwait(false) evita capturar el contexto
+            }
+
+            try
+            {
+                await cliente.SendMailAsync(mensaje);
+                Console.WriteLine($"✅ Correo enviado a {destinatario} con {mensaje.Attachments.Count} adjunto(s)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al enviar correo: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                // Liberar recursos de los adjuntos
+                foreach (var adjunto in mensaje.Attachments)
+                    adjunto.Dispose();
+            }
         }
     }
 }

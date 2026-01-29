@@ -5,7 +5,8 @@ import ErrorMessage from "../ErrorMessage";
 import SuccessModal from "../SuccessModal";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost:5195/api/Solicitudes";
+const API_URL = import.meta.env.VITE_API_URL;
+
 const API_NOMBRE_URL = "http://localhost:5195/api/Persona";
 
 const CrearSolicitud = () => {
@@ -220,7 +221,7 @@ const CrearSolicitud = () => {
         });
 
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_URL}/api/Solicitudes`, {
                 method: "POST",
                 body: data,
             });

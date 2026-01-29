@@ -31,7 +31,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
+            .WithOrigins(builder.Configuration["FrontendUrl"]!)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -48,11 +48,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 

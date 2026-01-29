@@ -3,7 +3,7 @@ import "../../styles/general.css";
 import logo from "../../assets/logo.png";
 import { useNavigate } from "react-router-dom"; 
 
-const MenuEmpleado = ({ onNavigate = (path) => console.log('Navigate to', path) }) => {
+const MenuEmpleado = () => {
     const navigate = useNavigate(); 
     return (
         <div className="page-container">

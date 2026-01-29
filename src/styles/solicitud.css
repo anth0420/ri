@@ -80,13 +80,14 @@
 /* Formulario */
 .form-group {
     margin-bottom: 0.875rem;
+
 }
 
-label {
+.form-group label {
     display: block;
     font-size: 0.8rem;
     margin-bottom: 0.25rem;
-    color: #555;
+    color: #000;
 }
 
 .form-control {

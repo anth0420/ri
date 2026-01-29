@@ -35,9 +35,9 @@ namespace ProyectoPasantiaRI.Server.Models
         {
             Estado = EstadoSolicitud.EnRevision;
         }
-        public void MarcarAprobada()
+        public void MarcarCompletada()
         {
-            Estado = EstadoSolicitud.Aprobada;
+            Estado = EstadoSolicitud.Completada;
         }
         public void MarcarRechazada()
         {

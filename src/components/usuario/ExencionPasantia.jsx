@@ -4,7 +4,7 @@ import "../../styles/general.css";
 import logo from "../../assets/logo.png";
 
 const ExencionPasantia = () => {
-    const navigate = useNavigate(); // Hook de navegación
+    const navigate = useNavigate(); 
 
     return (
         <div className="page-container">
@@ -20,13 +20,13 @@ const ExencionPasantia = () => {
                 </div>
 
                 {/* Title */}
-                <h2 className="title">SOLICITUD DE EXENCIÓN DE PASANTÍA</h2>
+                <h2 className="title">SOLICITUD DE EXENCION DE PASANTIA</h2>
 
                 {/* Description */}
                 <p className="description">
-                    Servicio en línea que permite a los Agrimensores egresados
-                    depositar la documentación requerida para la Certificación
-                    de Exención de Pasantía.
+                    Servicio en linea que permite a los Agrimensores egresados
+                    depositar la documentacion requerida para la Certificacion
+                    de Exencion de Pasantia.
                 </p>
 
                 {/* Observations */}
@@ -36,12 +36,12 @@ const ExencionPasantia = () => {
                     </p>
                     <ol>
                         <li>
-                            <strong>Disponibilidad de Documentos:</strong> Deberás tener toda la
-                            documentación requerida en formato digital.
+                            <strong>Disponibilidad de Documentos:</strong> Deberas tener toda la
+                            documentacion requerida en formato digital.
                         </li>
                         <li>
                             <strong>Contacto y Notificaciones:</strong> Es imprescindible contar
-                            con un correo electrónico activo para recibir la respuesta a tu
+                            con un correo electronico activo para recibir la respuesta a tu
                             solicitud y todas las notificaciones relacionadas con el proceso.
                         </li>
                     </ol>

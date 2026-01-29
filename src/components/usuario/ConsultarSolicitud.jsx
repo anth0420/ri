@@ -5,7 +5,7 @@ import SuccessModal from "../SuccessModal";
 import { useNavigate } from "react-router-dom"; 
 
 
-const API_URL = "http://localhost:5195";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ConsultarSolicitud = () => {
 
@@ -82,7 +82,7 @@ const ConsultarSolicitud = () => {
         const estados = {
             1: "Nueva",
             2: "En Revisión",
-            3: "Aprobada",
+            3: "Completada",
             4: "Rechazada",
             5: "Pendiente de respuesta",
             6: "Respuesta de usuario"
@@ -221,6 +221,7 @@ const ConsultarSolicitud = () => {
                 setError(`Error al actualizar archivos: ${errorData}`);
             }
         } catch (error) {
+            console.error(error);
             setError("Hubo un problema de comunicación con el servidor.");
         } finally {
             setEnviandoArchivos(false);

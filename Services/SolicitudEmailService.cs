@@ -157,7 +157,7 @@ namespace ProyectoPasantiaRI.Server.Services
                 </body>
                 </html>";
 
-        // ✅ NUEVA: Plantilla HTML para correo de devolución
+        // CONSTANTE: Plantilla HTML para correo de devolución
         private const string TEMPLATE_DEVOLUCION = @"
                 <!DOCTYPE html>
                 <html>
@@ -260,7 +260,7 @@ namespace ProyectoPasantiaRI.Server.Services
                         </div>
 
                         <p class='intro'>
-                            La solicitud de Certificación de Exención de Pasantía número <strong>[{0}]</strong>, 
+                            La solicitud de Certificación de Exención de Pasantía número <strong>{0}</strong>, 
                             presenta las siguientes observaciones que deben ser subsanadas:
                         </p>
 
@@ -276,6 +276,84 @@ namespace ProyectoPasantiaRI.Server.Services
                         <div class='button-container'>
                             <a href='{2}' class='button'>Realizar correcciones</a>
                         </div>
+
+                        <div class='footer'>
+                            <p>Favor no responder este correo.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2025.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+
+        // ✅ NUEVA: Plantilla HTML para correo de certificación enviada
+        private const string TEMPLATE_CERTIFICACION_ENVIADA = @"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='UTF-8'>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            background-color: #ffffff;
+                            color: #333;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        .container {{
+                            max-width: 600px;
+                            margin: 40px auto;
+                            padding: 40px 20px;
+                            text-align: center;
+                        }}
+                        .logo {{
+                            margin-bottom: 40px;
+                        }}
+                        .logo img {{
+                            width: 280px;
+                            height: auto;
+                        }}
+                        .message {{
+                            font-size: 15px;
+                            line-height: 1.6;
+                            color: #333;
+                            margin: 30px 0;
+                        }}
+                        .intro {{
+                            font-size: 15px;
+                            line-height: 1.6;
+                            color: #333;
+                            margin-bottom: 20px;
+                        }}
+                        .solicitud-number {{
+                            font-size: 15px;
+                            color: #333;
+                            margin: 25px 0;
+                        }}
+                        .solicitud-number strong {{
+                            font-weight: bold;
+                        }}
+                        .footer {{
+                            font-size: 12px;
+                            color: #666;
+                            margin-top: 50px;
+                            font-style: italic;
+                        }}
+                        .footer p {{
+                            margin: 5px 0;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='logo'>
+                            <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
+                        </div>
+
+                        <p class='intro'>
+                            La solicitud de Certificación de Exención de Pasantía número <strong>{0}</strong> 
+                            ha sido completada exitosamente. Adjunto a este correo encontrarás la certificación 
+                            correspondiente.
+                        </p>
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
@@ -341,14 +419,14 @@ namespace ProyectoPasantiaRI.Server.Services
         }
 
         /// <summary>
-        /// ✅ NUEVO: Envía correo de devolución cuando la DNMC requiere correcciones
+        /// Envía correo de devolución cuando la DNMC requiere correcciones
         /// </summary>
         public async Task EnviarCorreoDevolucionAsync(Solicitud solicitud, string comentario)
         {
             // Obtener la URL base del frontend desde configuración
             var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
-            
-            // ✅ URL con el número de solicitud como parámetro para prellenar el formulario
+
+            // URL con el número de solicitud como parámetro para prellenar el formulario
             var urlConsulta = $"{frontendUrl}/verificar-estatus/";
 
             var cuerpoCorreo = string.Format(
@@ -376,6 +454,52 @@ namespace ProyectoPasantiaRI.Server.Services
         }
 
         /// <summary>
+        /// ✅ NUEVO: Envía correo con la certificación adjunta cuando se completa la solicitud
+        /// </summary>
+        public async Task EnviarCorreoCertificacionEnviadaAsync(
+            Solicitud solicitud,
+            List<string> rutasCertificaciones,
+            IWebHostEnvironment env)
+        {
+            var cuerpoCorreo = string.Format(
+                TEMPLATE_CERTIFICACION_ENVIADA,
+                solicitud.NumeroSolicitud
+            );
+
+            try
+            {
+                // Crear lista de adjuntos con sus rutas completas
+                var certificacionesPath = Path.Combine(env.ContentRootPath, "certificaciones");
+                var adjuntos = rutasCertificaciones
+                    .Select(ruta => Path.Combine(certificacionesPath, ruta))
+                    .Where(File.Exists) 
+                    .ToList();
+
+                if (adjuntos.Count == 0)
+                {
+                    Console.WriteLine("No se encontraron certificaciones válidas para adjuntar");
+                    throw new FileNotFoundException("No se encontraron certificaciones para adjuntar");
+                }
+
+                // Enviar correo con adjuntos
+                await _emailService.EnviarCorreoConAdjuntosAsync(
+                    solicitud.Correo,
+                    "Certificación de Exención de Pasantía",
+                    cuerpoCorreo,
+                    adjuntos
+                );
+
+         
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error enviando correo con certificación: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Convierte el nombre del estado a un formato amigable para el usuario
         /// </summary>
         private string ObtenerNombreEstadoAmigable(string estado)
@@ -384,7 +508,7 @@ namespace ProyectoPasantiaRI.Server.Services
             {
                 "Nueva" => "Nueva",
                 "EnRevision" => "En Revisión",
-                "Aprobada" => "Aprobada",
+                "Completada" => "Completada",
                 "Rechazada" => "Rechazada",
                 "PendienteRespuesta" => "Pendiente de respuesta",
                 "RespuestaUsuario" => "Respuesta de usuario",
