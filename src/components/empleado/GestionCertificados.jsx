@@ -40,7 +40,7 @@ const GestorSolicitudes = () => {
             }
         } finally {
             setLoading(false);
-            
+
         }
     };
     const fetchCertificaciones = async (numeroSolicitud) => {
@@ -133,7 +133,7 @@ const GestorSolicitudes = () => {
     const solicitudesFiltradas = useMemo(() => {
         let data = [...solicitudes];
 
-        // Filtrar por tab
+        // Filtrar por pestaña
         data =
             activeTab === 'pendientes'
                 ? data.filter((s) => [1, 5, 6].includes(s.estado))
@@ -283,7 +283,7 @@ const GestorSolicitudes = () => {
                     Módulo de gestión de solicitudes de exención de pasantías
                 </h1>
 
-                {/* Tabs */}
+                {/* Pestañas */}
                 <div className="gestor-tabs">
                     <button
                         className={`gestor-tab ${activeTab === 'pendientes' ? 'active' : ''}`}
@@ -370,16 +370,18 @@ const GestorSolicitudes = () => {
                                                     <td className="action-cell">
                                                         {puedeEditar(s.estado) ? (
                                                             <button
+                                                                type="button"
                                                                 className="btn-action"
                                                                 onClick={() => handleEditar(s)}
                                                                 title="Responder solicitud"
                                                             >
-                                                                ✏️
+                                                                <i className="bi bi-pencil"></i>
                                                             </button>
                                                         ) : (
                                                             <span className="action-disabled">—</span>
                                                         )}
                                                     </td>
+
                                                 </tr>
                                             ))
                                         )}
@@ -478,38 +480,38 @@ const GestorSolicitudes = () => {
 
                         {/* Paginación */}
                         {totalPages > 1 && (
-                                <div className="gestor-pagination">
+                            <div className="gestor-pagination">
 
-                                    {/* Botón Anterior */}
-                                    {currentBlock > 0 && (
-                                        <button
-                                            className="page-nav"
-                                            onClick={() => handlePageChange(startPage - 1)}
-                                            title="Página anterior"
-                                        >
-                                            «
-                                        </button>
-                                    )}
-                                    {/*Números de página visibles */} 
-                                    {visiblePages.map((pageNum) => (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => handlePageChange(pageNum)}
-                                            className={`page-number ${currentPage === pageNum ? 'active' : ''}`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    ))}
-                                    {/* Botón Siguiente */}
-                                    {endPage < totalPages && (
-                                        <button
-                                            className="page-nav"
-                                            onClick={() => handlePageChange(endPage + 1)}
-                                            title="Página siguiente"
-                                        >   
-                                            »
-                                        </button>
-                                    )}
+                                {/* Botón Anterior */}
+                                {currentBlock > 0 && (
+                                    <button
+                                        className="page-nav"
+                                        onClick={() => handlePageChange(startPage - 1)}
+                                        title="Página anterior"
+                                    >
+                                        «
+                                    </button>
+                                )}
+                                {/*Números de página visibles */}
+                                {visiblePages.map((pageNum) => (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`page-number ${currentPage === pageNum ? 'active' : ''}`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                ))}
+                                {/* Botón Siguiente */}
+                                {endPage < totalPages && (
+                                    <button
+                                        className="page-nav"
+                                        onClick={() => handlePageChange(endPage + 1)}
+                                        title="Página siguiente"
+                                    >
+                                        »
+                                    </button>
+                                )}
                             </div>
                         )}
 

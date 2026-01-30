@@ -1,3 +1,6 @@
+* {
+    font-family: 'Montserrat', sans-serif;
+}
 /* =========================
    MODAL Y CONTENEDOR
 ========================= */
@@ -136,13 +139,11 @@
    MENSAJES DE ERROR
 ========================= */
 .error-message-consulta {
-    background: #fee2e2;
-    color: #991b1b;
-    font-size: 13px;
-    padding: 12px;
+
+    color: #c00;
+    font-size: 11px;
     border-radius: 6px;
     margin-bottom: 18px;
-    border-left: 3px solid #dc2626;
 }
 
 /* =========================

@@ -5,7 +5,6 @@ import { useParams, useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-
 const RespuestaSolicitud = () => {
     const { numeroSolicitud } = useParams();
     const navigate = useNavigate();
@@ -24,7 +23,6 @@ const RespuestaSolicitud = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [errores, setErrores] = useState({});
-
 
     // Configuración de validaciones
     const COMENTARIO_MIN = 10;
@@ -255,11 +253,6 @@ const RespuestaSolicitud = () => {
     };
 
     /* ===============================
-       FUNCIONES DE UTILIDAD
-    =============================== */
-
-
-    /* ===============================
        UI
     =============================== */
     if (loading) return <p>Cargando solicitud...</p>;
@@ -309,7 +302,15 @@ const RespuestaSolicitud = () => {
                                     <div key={archivo.id} className="archivo-row">
                                         <div className="archivo-nombre-col">{archivo.nombreOriginal}</div>
                                         <div className="archivo-accion-col">
-
+                                                                                    <a
+                                                href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}/ver`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Ver archivo"
+                                                className="icon-link"
+                                            >
+                                                <i class="bi bi-eye"></i>
+                                            </a>
                                             <a
                                                 href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
                                                 download={archivo.nombreOriginal}
@@ -331,6 +332,7 @@ const RespuestaSolicitud = () => {
                                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                                 </svg>
                                             </a>
+
                                         </div>
                                     </div>
                                 ))}
@@ -350,11 +352,13 @@ const RespuestaSolicitud = () => {
                                 <div className="historial-col-fecha">Fecha devolución</div>
                                 <div className="historial-col-comentario">Comentario</div>
                             </div>
+
                             {solicitud.historial.map((item, index) => (
                                 <div key={index} className="historial-body-row">
+                                    {/* FECHA */}
                                     <div className="historial-col-fecha-content">
-                                        {item.fecha ? (
-                                            new Date(item.fecha).toLocaleDateString('es-DO', {
+                                        {item.fechaDevolucion ? (
+                                            new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
                                                 year: 'numeric',
                                                 month: '2-digit',
                                                 day: '2-digit'
@@ -363,47 +367,23 @@ const RespuestaSolicitud = () => {
                                             'Sin fecha'
                                         )}
                                     </div>
+
+                                    {/* COMENTARIO */}
                                     <div className="historial-col-comentario-content">
                                         {item.comentario && (
                                             <div className="historial-texto-wrapper">
                                                 <div
                                                     className="historial-texto"
-                                                    title={item.comentario.length > MAX_CARACTERES_COMENTARIO ? item.comentario : ""}
+                                                    title={
+                                                        item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                            ? item.comentario
+                                                            : ''
+                                                    }
                                                 >
                                                     {item.comentario.length > MAX_CARACTERES_COMENTARIO
                                                         ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
-                                                        : item.comentario
-                                                    }
+                                                        : item.comentario}
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {item.archivos && item.archivos.length > 0 && (
-                                            <div className="historial-archivos-list">
-                                                {item.archivos.map((archivo) => (
-                                                    <div key={archivo.id} className="historial-archivo-item">
-                                                        <span className="archivo-nombre-hist">{archivo.nombreOriginal}</span>
-                                                        <div className="archivo-acciones-hist">
-                                                            <a
-                                                                href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                title="Ver archivo"
-                                                                className="icon-hist"
-                                                            >
-                                                                👁️
-                                                            </a>
-                                                            <a
-                                                                href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
-                                                                download={archivo.nombreOriginal}
-                                                                title="Descargar archivo"
-                                                                className="icon-hist"
-                                                            >
-                                                                ⬇️
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -543,7 +523,7 @@ const RespuestaSolicitud = () => {
                         {enviando ? 'Enviando...' : 'Enviar'}
                     </button>
                 </div>
-                {/* ✅ Modal movido FUERA del modal-overlay para que aparezca por encima */}
+
                 <SuccessModal
                     message={success}
                     onClose={() => {

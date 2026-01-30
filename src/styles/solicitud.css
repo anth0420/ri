@@ -2,6 +2,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .page-container {
@@ -79,16 +80,15 @@
 
 /* Formulario */
 .form-group {
-    margin-bottom: 0.875rem;
-
+    margin-bottom: 0.75rem;
 }
 
-.form-group label {
-    display: block;
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
-    color: #000;
-}
+    .form-group label {
+        display: block;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        color: #000;
+    }
 
 .form-control {
     width: 100%;
@@ -104,6 +104,26 @@
         border-color: #1565c0;
         box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
     }
+
+/* Mensajes de error */
+.error-message {
+    color: #c00;
+    font-size: 0.7rem;
+}
+.form-control.error,
+.upload-box.error {
+    border-color: #dc3545;
+}
+
+.error-general {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    border: 1px solid #f5c6cb;
+}
 
 /* Upload box */
 .upload-box {
@@ -323,6 +343,10 @@
         font-size: 0.98rem;
         margin-top: 1.25rem;
     }
+
+    .error-message {
+        font-size: 0.72rem;
+    }
 }
 
 /* ============================================
@@ -409,6 +433,10 @@
         padding: 0.85rem;
         font-size: 1rem;
         margin-top: 1.25rem;
+    }
+
+    .error-message {
+        font-size: 0.75rem;
     }
 }
 
@@ -497,6 +525,10 @@
         font-size: 1.05rem;
         margin-top: 1.5rem;
     }
+
+    .error-message {
+        font-size: 0.78rem;
+    }
 }
 
 /* ============================================
@@ -576,5 +608,9 @@
         padding: 0.625rem;
         font-size: 0.875rem;
         margin-top: 1rem;
+    }
+
+    .error-message {
+        font-size: 0.65rem;
     }
 }

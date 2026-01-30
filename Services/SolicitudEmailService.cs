@@ -60,16 +60,19 @@ namespace ProyectoPasantiaRI.Server.Services
                 </head>
                 <body>
                     <div class='container'>
-                        <div class='logo'>
-                            <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
+                         <div class=""logo"">
+                            <img 
+                                src=""http://10.0.11.164:8096/assets/Logo-CBXdJdUE.png""
+                                alt=""Registro Inmobiliario""
+                                style=""max-width:180px;""
+                            />
                         </div>
-
                         <p class='message'>
                             La solicitud de Certificación de Exención de Pasantía ha sido creada exitosamente.
                         </p>
 
                         <p class='solicitud-number'>
-                            Número de Solicitud: <strong>[{0}]</strong>
+                            Número de Solicitud: <strong> {0}</strong>
                         </p>
 
                         <p class='message'>
@@ -138,8 +141,12 @@ namespace ProyectoPasantiaRI.Server.Services
                 </head>
                 <body>
                     <div class='container'>
-                        <div class='logo'>
-                            <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
+                         <div class=""logo"">
+                            <img 
+                                src=""http://10.0.11.164:8096/assets/Logo-CBXdJdUE.png""
+                                alt=""Registro Inmobiliario""
+                                style=""max-width:180px;""
+                            />
                         </div>
                         <p class='message'>
                             La correcion de la solicitud de Certificacion de Extension de Pasantia Numero <strong>{0}</strong> 
@@ -255,8 +262,12 @@ namespace ProyectoPasantiaRI.Server.Services
                 </head>
                 <body>
                     <div class='container'>
-                        <div class='logo'>
-                            <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
+                         <div class=""logo"">
+                            <img 
+                                src=""http://10.0.11.164:8096/assets/Logo-CBXdJdUE.png""
+                                alt=""Registro Inmobiliario""
+                                style=""max-width:180px;""
+                            />
                         </div>
 
                         <p class='intro'>
@@ -265,7 +276,7 @@ namespace ProyectoPasantiaRI.Server.Services
                         </p>
 
                         <div class='comment-section'>
-                            <div class='comment-label'>comentario de devolución de la DNMC</div>
+                            <div class='comment-label'>Comentario de devolución de la Dirección Nacional de Mensuras Catastrales</div>
                             <div class='comment-text'>{1}</div>
                         </div>
 
@@ -345,8 +356,12 @@ namespace ProyectoPasantiaRI.Server.Services
                 </head>
                 <body>
                     <div class='container'>
-                        <div class='logo'>
-                            <img src='https://i.imgur.com/YourLogoHere.png' alt='Registro Inmobiliario' />
+                         <div class=""logo"">
+                            <img 
+                                src=""http://10.0.11.164:8096/assets/Logo-CBXdJdUE.png""
+                                alt=""Registro Inmobiliario""
+                                style=""max-width:180px;""
+                            />
                         </div>
 
                         <p class='intro'>

@@ -18,6 +18,7 @@ const ConsultarSolicitud = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
+    const MAX_CARACTERES_COMENTARIO = 30; // Para mostrar en tabla
 
     const EXTENSIONES_PERMITIDAS = [".pdf", ".jpg", ".jpeg", ".png"];
     const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
@@ -238,27 +239,36 @@ const ConsultarSolicitud = () => {
 
                     <h2 className="consulta-title">Verificar estatus de solicitud</h2>
 
-                    {error && <div className="error-message-consulta">{error}</div>}
-
+                   
                     <div className="form-group-consulta">
                         <label>Número de solicitud</label>
-                        <div className="input-wrapper">
+                        <div className="input-with-button">
                             <input
                                 type="text"
                                 maxLength={7}
                                 value={numeroSolicitud}
                                 onChange={handleNumeroChange}
-                                className="input-consulta"
+                                className="form-control input-consulta"
+                                disabled={loading}
+                                placeholder="0000000"
                             />
+
                             <button
-                                className="btn-buscar"
+                                type="button"
+                                className="btn-search"
                                 onClick={buscarSolicitud}
                                 disabled={!esNumeroValido || loading}
                             >
-                                🔍
+                                {loading ? (
+                                    <i className="bi bi-arrow-repeat spin"></i>
+                                ) : (
+                                    <i className="bi bi-search"></i>
+                                )}
                             </button>
                         </div>
+
                     </div>
+                    {error && <div className="error-message-consulta">{error}</div>}
 
                     <div className="form-group-consulta">
                         <label>Nombre completo</label>
@@ -375,17 +385,47 @@ const ConsultarSolicitud = () => {
                     {solicitud?.historial?.length > 0 && (
                         <div className="section-consulta">
                             <div className="section-title">Historial de correcciones</div>
-                            <div className="historial-list">
+
+                            <div className="historial-tabla">
+                                <div className="historial-header-row">
+                                    <div className="historial-col-fecha">Fecha devolución</div>
+                                    <div className="historial-col-comentario">Comentario</div>
+                                </div>
+
                                 {solicitud.historial.map((item, index) => (
-                                    <div key={index} className="historial-item">
-                                        <div className="historial-fecha">
-                                            {new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric',
-                                            })}
+                                    <div key={index} className="historial-body-row">
+                                        {/* Fecha */}
+                                        <div className="historial-col-fecha-content">
+                                            {item.fechaDevolucion ? (
+                                                new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit'
+                                                })
+                                            ) : (
+                                                'Sin fecha'
+                                            )}
                                         </div>
-                                        <div className="historial-descripcion">{item.comentario}</div>
+
+                                        {/* Comentario */}
+                                        <div className="historial-col-comentario-content">
+                                            {item.comentario && (
+                                                <div className="historial-texto-wrapper">
+                                                    <div
+                                                        className="historial-texto"
+                                                        title={
+                                                            item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                                ? item.comentario
+                                                                : ''
+                                                        }
+                                                    >
+                                                        {item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                            ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
+                                                            : item.comentario}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

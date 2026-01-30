@@ -494,7 +494,37 @@ namespace ProyectoPasantiaRI.Server.Controllers
 
             return File(fileBytes, contentType, archivo.NombreArchivo);
         }
+        [HttpGet("archivo/{archivoId}/ver")]
+        public async Task<IActionResult> VerArchivo(int archivoId)
+        {
+            var archivo = await _context.SolicitudArchivos
+                .FirstOrDefaultAsync(a => a.Id == archivoId);
 
+            if (archivo == null)
+                return NotFound("Archivo no encontrado");
+
+            var uploadsPath = Path.Combine(_env.ContentRootPath, "uploads");
+            var filePath = Path.Combine(uploadsPath, archivo.Ruta);
+
+            if (!System.IO.File.Exists(filePath))
+                return NotFound("El archivo no existe en el servidor");
+
+            var extension = Path.GetExtension(archivo.NombreArchivo).ToLower();
+
+            var contentType = extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+            // 👇 CLAVE: NO pasar el nombre del archivo
+            return File(fileBytes, contentType);
+        }
         // =========================
         // GUARDAR ARCHIVOS
         // =========================

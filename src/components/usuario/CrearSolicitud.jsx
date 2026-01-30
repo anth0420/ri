@@ -1,7 +1,6 @@
 ﻿import { useState } from "react";
 import "../../styles/solicitud.css";
 import logo from "../../assets/logo.png";
-import ErrorMessage from "../ErrorMessage";
 import SuccessModal from "../SuccessModal";
 import { useNavigate } from "react-router-dom";
 
@@ -21,7 +20,17 @@ const CrearSolicitud = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
     const [buscandoNombre, setBuscandoNombre] = useState(false);
-    const [error, setError] = useState("");
+
+    // Estado de errores individuales por campo
+    const [errors, setErrors] = useState({
+        cedula: "",
+        nombre: "",
+        correo: "",
+        confirmarCorreo: "",
+        archivos: "",
+        general: ""
+    });
+
     const [success, setSuccess] = useState("");
 
     const EXTENSIONES_PERMITIDAS = [".pdf", ".jpg", ".jpeg", ".png"];
@@ -48,8 +57,21 @@ const CrearSolicitud = () => {
         return cedulaFormateada;
     };
 
+    // Función para limpiar error de un campo específico
+    const clearFieldError = (fieldName) => {
+        setErrors(prev => ({ ...prev, [fieldName]: "" }));
+    };
+
+    // Función para establecer error de un campo específico
+    const setFieldError = (fieldName, errorMessage) => {
+        setErrors(prev => ({ ...prev, [fieldName]: errorMessage }));
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        // Limpiar error del campo cuando el usuario empieza a escribir
+        clearFieldError(name);
 
         // Validar solo números y guiones en cédula (máx 11 dígitos + 2 guiones = 13 caracteres)
         if (name === "cedula") {
@@ -110,11 +132,11 @@ const CrearSolicitud = () => {
         }
 
         if (errores.length > 0) {
-            setError(errores.join("\n"));
+            setFieldError("archivos", errores.join("\n"));
             return;
         }
 
-        setError("");
+        clearFieldError("archivos");
         setArchivos([...archivos, ...nuevosArchivos]);
     };
 
@@ -147,11 +169,11 @@ const CrearSolicitud = () => {
         }
 
         if (errores.length > 0) {
-            setError(errores.join("\n"));
+            setFieldError("archivos", errores.join("\n"));
             return;
         }
 
-        setError("");
+        clearFieldError("archivos");
         setArchivos([...archivos, ...nuevosArchivos]);
     };
 
@@ -162,48 +184,112 @@ const CrearSolicitud = () => {
     const fetchNombrePorCedula = async (cedula) => {
         if (!cedula) return;
 
+        // Validar que la cédula tenga 11 dígitos antes de buscar
+        const cedulaLimpia = cedula.replace(/-/g, '');
+        if (cedulaLimpia.length !== 11) {
+            return;
+        }
+
         try {
             setBuscandoNombre(true);
-            // Limpiar la cédula de guiones antes de enviar
-            const cedulaLimpia = cedula.replace(/-/g, '');
+            clearFieldError("cedula"); // Limpiar error previo antes de buscar
+
             const res = await fetch(`${API_NOMBRE_URL}/por-cedula/${encodeURIComponent(cedulaLimpia)}`);
 
             if (res.ok) {
                 const data = await res.json();
                 if (data?.nombre) {
                     setForm((prev) => ({ ...prev, nombre: data.nombre }));
+                    clearFieldError("cedula");
+                    clearFieldError("nombre");
+                } else {
+                    // No se encontró el nombre
+                    setFieldError("cedula", "No se encontraron resultados. Por favor, verifique el dato ingresado o ingresa el nombre completo");
                 }
+            } else {
+                // Error en la respuesta
+                setFieldError("cedula", "No se encontraron resultados. Por favor, verifique el dato ingresado o ingresa el nombre completo");
             }
         } catch {
-            setError("Error al obtener el nombre por cédula.");
+            // Error de red
+            setFieldError("cedula", "No se encontraron resultados. Por favor, verifique el dato ingresado o ingresa el nombre completo");
         } finally {
             setBuscandoNombre(false);
         }
     };
 
+    const validarFormulario = () => {
+        let isValid = true;
+        const newErrors = {
+            cedula: errors.cedula, // Mantener el error de búsqueda si existe
+            nombre: "",
+            correo: "",
+            confirmarCorreo: "",
+            archivos: "",
+            general: ""
+        };
+
+        // Validar cédula solo si no tiene error previo de búsqueda
+        if (!errors.cedula) {
+            if (!form.cedula) {
+                newErrors.cedula = "La cédula es obligatoria.";
+                isValid = false;
+            } else {
+                const cedulaLimpia = form.cedula.replace(/-/g, '');
+                if (cedulaLimpia.length !== 11) {
+                    newErrors.cedula = "La cédula debe tener 11 dígitos.";
+                    isValid = false;
+                }
+            }
+        } else {
+            // Si ya hay un error de búsqueda, el formulario no es válido
+            isValid = false;
+        }
+
+        // Validar nombre
+        if (!form.nombre) {
+            newErrors.nombre = "El nombre es obligatorio.";
+            isValid = false;
+        }
+
+        // Validar correo
+        if (!form.correo) {
+            newErrors.correo = "El correo electrónico es obligatorio.";
+            isValid = false;
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(form.correo)) {
+                newErrors.correo = "Por favor ingresa un correo electrónico válido.";
+                isValid = false;
+            }
+        }
+
+        // Validar confirmación de correo
+        if (!form.confirmarCorreo) {
+            newErrors.confirmarCorreo = "Debes confirmar el correo electrónico.";
+            isValid = false;
+        } else if (form.correo !== form.confirmarCorreo) {
+            newErrors.confirmarCorreo = "Los correos no coinciden.";
+            isValid = false;
+        }
+
+        // Validar archivos
+        if (archivos.length === 0) {
+            newErrors.archivos = "Debes cargar al menos un documento.";
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
     const handleSubmit = async () => {
-        setError("");
+        // Limpiar errores generales
+        setErrors(prev => ({ ...prev, general: "" }));
         setSuccess("");
 
-        if (!form.cedula || !form.nombre || !form.correo || !form.confirmarCorreo) {
-            setError("Por favor completa todos los campos.");
-            return;
-        }
-
-        // Validar formato de correo electrónico
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(form.correo)) {
-            setError("Por favor ingresa un correo electrónico válido.");
-            return;
-        }
-
-        if (form.correo !== form.confirmarCorreo) {
-            setError("Los correos no coinciden.");
-            return;
-        }
-
-        if (archivos.length === 0) {
-            setError("Debes cargar al menos un documento.");
+        // Validar formulario
+        if (!validarFormulario()) {
             return;
         }
 
@@ -237,12 +323,20 @@ const CrearSolicitud = () => {
                     confirmarCorreo: "",
                 });
                 setArchivos([]);
+                setErrors({
+                    cedula: "",
+                    nombre: "",
+                    correo: "",
+                    confirmarCorreo: "",
+                    archivos: "",
+                    general: ""
+                });
             } else {
                 const errorData = await response.text();
-                setError(`Error al enviar la solicitud. Código: ${response.status}. ${errorData}`);
+                setFieldError("general", `Error al enviar la solicitud. Código: ${response.status}. ${errorData}`);
             }
         } catch (error) {
-            setError("Hubo un problema de comunicación con el servidor.");
+            setFieldError("general", "Hubo un problema de comunicación con el servidor.");
         } finally {
             setLoading(false);
         }
@@ -275,7 +369,7 @@ const CrearSolicitud = () => {
                                     value={form.cedula}
                                     onChange={handleChange}
                                     onBlur={() => fetchNombrePorCedula(form.cedula)}
-                                    className="form-control input-cedula"
+                                    className={`form-control input-cedula ${errors.cedula ? 'error' : ''}`}
                                     disabled={loading}
                                     placeholder="000-0000000-0"
                                     maxLength={13}
@@ -293,6 +387,11 @@ const CrearSolicitud = () => {
                                     )}
                                 </button>
                             </div>
+                            {errors.cedula && (
+                                <span className="error-message">
+                                    {errors.cedula}
+                                </span>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -302,10 +401,15 @@ const CrearSolicitud = () => {
                                 name="nombre"
                                 value={form.nombre}
                                 onChange={handleChange}
-                                className="form-control"
+                                className={`form-control ${errors.nombre ? 'error' : ''}`}
                                 disabled={loading}
                                 maxLength={50}
                             />
+                            {errors.nombre && (
+                                <span className="error-message">
+                                    {errors.nombre}
+                                </span>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -315,10 +419,15 @@ const CrearSolicitud = () => {
                                 name="correo"
                                 value={form.correo}
                                 onChange={handleChange}
-                                className="form-control"
+                                className={`form-control ${errors.correo ? 'error' : ''}`}
                                 disabled={loading}
                                 maxLength={50}
                             />
+                            {errors.correo && (
+                                <span className="error-message">
+                                    {errors.correo}
+                                </span>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -328,16 +437,21 @@ const CrearSolicitud = () => {
                                 name="confirmarCorreo"
                                 value={form.confirmarCorreo}
                                 onChange={handleChange}
-                                className="form-control"
+                                className={`form-control ${errors.confirmarCorreo ? 'error' : ''}`}
                                 disabled={loading}
                                 maxLength={50}
                             />
+                            {errors.confirmarCorreo && (
+                                <span className="error-message">
+                                    {errors.confirmarCorreo}
+                                </span>
+                            )}
                         </div>
 
                         <div className="form-group">
                             <label>Documentos de la solicitud</label>
                             <div
-                                className={`upload-box ${isDragging ? 'dragging' : ''}`}
+                                className={`upload-box ${isDragging ? 'dragging' : ''} ${errors.archivos ? 'error' : ''}`}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
@@ -408,9 +522,19 @@ const CrearSolicitud = () => {
                                     ))}
                                 </div>
                             )}
+
+                            {errors.archivos && (
+                                <span className="error-message">
+                                    {errors.archivos}
+                                </span>
+                            )}
                         </div>
 
-                        <ErrorMessage message={error} />
+                        {errors.general && (
+                            <div className="error-general">
+                                {errors.general}
+                            </div>
+                        )}
 
                         <button
                             onClick={handleSubmit}

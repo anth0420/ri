@@ -2,7 +2,9 @@
    GESTOR DE SOLICITUDES
    Página administrativa
 ========================= */
-
+* {
+    font-family: 'Montserrat', sans-serif;
+}
 .gestor-wrapper {
     min-height: 100vh;
     background: linear-gradient(135deg, #1565c0, #0d47a1);
@@ -16,7 +18,7 @@
     text-align: center;
     margin-bottom: 30px;
     display: flex;
-    justify-content: center;
+    justify-content: left;
     align-items: center;
 }
 
@@ -200,9 +202,8 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: #0052CC;
     font-size: 18px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     transition: transform 0.2s;
 }
 

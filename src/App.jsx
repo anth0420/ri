@@ -6,7 +6,7 @@ import CrearSolicitud from './components/usuario/CrearSolicitud';
 import ConsultarSolicitud from './components/usuario/ConsultarSolicitud';
 
 // EMPLEADO
-import MenuEmpleado from './components/empleado/MenuEmpleado';
+import MenuEmpleado from './components/empleado/Login';
 import GestorSolicitudes from './components/empleado/GestionCertificados';
 import RespuestaSolicitud from './components/empleado/ResponderSolicitudes';
 
