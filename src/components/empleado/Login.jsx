@@ -3,7 +3,11 @@ import "../../styles/general.css";
 import logo from "../../assets/logo.png";
 import { useNavigate } from "react-router-dom"; 
 
-const MenuEmpleado = () => {
+const LogIn = () => {
+     
+
+
+
     const navigate = useNavigate(); 
     return (
         <div className="page-container">
@@ -60,4 +64,4 @@ const MenuEmpleado = () => {
     );
 };
 
-export default MenuEmpleado;
+export default LogIn;

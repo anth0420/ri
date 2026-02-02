@@ -369,7 +369,7 @@ const ConsultarSolicitud = () => {
                                     <div key={archivo.id} className="document-item">
                                         <span className="document-name">{archivo.nombreOriginal}</span>
                                         <a
-                                            href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
+                                            href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}/ver`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="document-view"

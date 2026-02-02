@@ -82,12 +82,12 @@ const GestorSolicitudes = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchSolicitudes(true); // silent = true para no mostrar loading
-        }, 30000); // 30 segundos
+        }, 15000); // 15 segundos
 
         return () => clearInterval(interval);
     }, []);
 
-    // Función para refresh manual
+
 
     /* ===============================
        ESTADOS (ENUM VISUAL)
@@ -427,45 +427,21 @@ const GestorSolicitudes = () => {
                                                     <td>{formatearFechaCorta(s.fechaCreacion)}</td>
                                                     <td>{formatearFechaCorta(s.fechaDevolucion)}</td>
                                                     <td className="action-cell">
-                                                        {certificacionesMap[s.numeroSolicitud] &&
-                                                            certificacionesMap[s.numeroSolicitud].length > 0 ? (
-
-                                                            certificacionesMap[s.numeroSolicitud].length === 1 ? (
-                                                                <button
-                                                                    className="btn-download"
-                                                                    onClick={() => {
-                                                                        const cert = certificacionesMap[s.numeroSolicitud][0];
-                                                                        window.open(
-                                                                            `${API_URL}/api/Solicitudes/certificacion/${cert.id}`,
-                                                                            '_blank',
-                                                                            'noopener,noreferrer'
-                                                                        );
-                                                                    }}
-                                                                    title={certificacionesMap[s.numeroSolicitud][0].nombreArchivo}
-                                                                >
-                                                                    📥
-                                                                </button>
-                                                            ) : (
-                                                                <div className="certificaciones-list">
-                                                                    {certificacionesMap[s.numeroSolicitud].map(cert => (
-                                                                        <button
-                                                                            key={cert.id}
-                                                                            className="btn-download-small"
-                                                                            onClick={() => {
-                                                                                window.open(
-                                                                                    `${API_URL}/api/Solicitudes/certificacion/${cert.id}`,
-                                                                                    '_blank',
-                                                                                    'noopener,noreferrer'
-                                                                                );
-                                                                            }}
-                                                                            title={cert.nombreArchivo}
-                                                                        >
-                                                                            📄
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            )
-
+                                                        {certificacionesMap[s.numeroSolicitud]?.length === 1 ? (
+                                                            <button
+                                                                className="btn-download"
+                                                                onClick={() => {
+                                                                    const cert = certificacionesMap[s.numeroSolicitud][0];
+                                                                    window.open(
+                                                                        `${API_URL}/api/Solicitudes/certificacion/${cert.id}`,
+                                                                        "_blank",
+                                                                        "noopener,noreferrer"
+                                                                    );
+                                                                }}
+                                                                title={certificacionesMap[s.numeroSolicitud][0].nombreArchivo}
+                                                            >
+                                                                <i className="bi bi-download"></i>
+                                                            </button>
                                                         ) : (
                                                             <span className="action-disabled">—</span>
                                                         )}

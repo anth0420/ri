@@ -287,8 +287,8 @@ namespace ProyectoPasantiaRI.Server.Controllers
         // =========================
         [HttpPost("{solicitudId}/devolver")]
         public async Task<IActionResult> DevolverSolicitud(
-            int solicitudId,
-            [FromBody] string comentario)
+                   int solicitudId,
+                   [FromBody] string comentario)
         {
             if (string.IsNullOrWhiteSpace(comentario))
             {
@@ -319,6 +319,12 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 Comentario = comentario
             };
 
+            // Obtener las rutas de los archivos ACTUALES antes de marcarlos como no actuales
+            var archivosActuales = solicitud.Archivos
+                .Where(a => a.EsActual)
+                .Select(a => a.Ruta)
+                .ToList();
+
             foreach (var archivo in solicitud.Archivos.Where(a => a.EsActual))
             {
                 archivo.EsActual = false;
@@ -334,7 +340,12 @@ namespace ProyectoPasantiaRI.Server.Controllers
             {
                 try
                 {
-                    await _emailService.EnviarCorreoDevolucionAsync(solicitud, comentario);
+                    await _emailService.EnviarCorreoDevolucionAsync(
+                        solicitud,
+                        comentario,
+                        archivosActuales,
+                        _env
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -344,6 +355,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
 
             return Ok("Solicitud devuelta al usuario");
         }
+
 
         // =========================
         // DNMC ENVÍA CERTIFICACIÓN

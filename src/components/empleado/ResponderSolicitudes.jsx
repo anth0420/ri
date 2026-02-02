@@ -262,7 +262,7 @@ const RespuestaSolicitud = () => {
         <div className="page-container">
             <div className="respuesta-solicitud-container">
                 <h2>
-                    {solicitud.estado === 'RespuestaUsuario'
+                    {solicitud.estado === 6
                         ? 'Respuesta solicitud en proceso'
                         : 'Respuesta nueva solicitud'}
                 </h2>

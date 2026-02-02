@@ -6,9 +6,12 @@ import CrearSolicitud from './components/usuario/CrearSolicitud';
 import ConsultarSolicitud from './components/usuario/ConsultarSolicitud';
 
 // EMPLEADO
-import MenuEmpleado from './components/empleado/Login';
+import LogIn from './components/empleado/Login';
 import GestorSolicitudes from './components/empleado/GestionCertificados';
 import RespuestaSolicitud from './components/empleado/ResponderSolicitudes';
+
+import Administracion from './components/empleado/Administracion';
+import CrearUsuario from './components/empleado/CrearUsuario';
 
 function App() {
     return (
@@ -20,9 +23,13 @@ function App() {
                 <Route path="/verificar-estatus" element={<ConsultarSolicitud />} />
 
                 {/* RUTAS DE EMPLEADO */}
-                <Route path="/empleado" element={<MenuEmpleado />} />
+                <Route path="/empleado" element={<LogIn />} />
                 <Route path="/empleado/gestor-solicitudes" element={<GestorSolicitudes />} />
                 <Route path="/empleado/responder/:numeroSolicitud" element={<RespuestaSolicitud />} />
+
+                {/* Ruta de Administrador */}
+                <Route path="/admin" element={<Administracion />} />
+                <Route path="/admin/usuarios/crear" element={<CrearUsuario/> } />
             </Routes>
         </Router>
     );

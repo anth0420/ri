@@ -436,7 +436,11 @@ namespace ProyectoPasantiaRI.Server.Services
         /// <summary>
         /// Envía correo de devolución cuando la DNMC requiere correcciones
         /// </summary>
-        public async Task EnviarCorreoDevolucionAsync(Solicitud solicitud, string comentario)
+        public async Task EnviarCorreoDevolucionAsync(
+                   Solicitud solicitud,
+                   string comentario,
+                   List<string> rutasArchivos = null,
+                   IWebHostEnvironment env = null)
         {
             // Obtener la URL base del frontend desde configuración
             var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
@@ -453,6 +457,29 @@ namespace ProyectoPasantiaRI.Server.Services
 
             try
             {
+                // Si hay archivos adjuntos, enviar con adjuntos
+                if (rutasArchivos != null && rutasArchivos.Any() && env != null)
+                {
+                    var uploadsPath = Path.Combine(env.ContentRootPath, "uploads");
+                    var adjuntos = rutasArchivos
+                        .Select(ruta => Path.Combine(uploadsPath, ruta))
+                        .Where(File.Exists)
+                        .ToList();
+
+                    if (adjuntos.Count > 0)
+                    {
+                        await _emailService.EnviarCorreoConAdjuntosAsync(
+                            solicitud.Correo,
+                            "Solicitud de Corrección de Solicitud de Exención de Pasantía",
+                            cuerpoCorreo,
+                            adjuntos
+                        );
+                        Console.WriteLine($"✅ Correo de devolución enviado con {adjuntos.Count} adjunto(s) a: {solicitud.Correo}");
+                        return;
+                    }
+                }
+
+                // Si no hay adjuntos, enviar correo simple
                 await _emailService.EnviarCorreoAsync(
                     solicitud.Correo,
                     "Solicitud de Corrección de Solicitud de Exención de Pasantía",
