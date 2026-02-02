@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import logo from '../../assets/logo.png';
 import '../../styles/Administracion.css';
 import { useNavigate } from "react-router-dom";
+import CrearUsuario from './CrearUsuario';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const ITEMS_PER_PAGE = 15;
@@ -24,6 +25,7 @@ const Administrador = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [usuarioConfirmacion, setUsuarioConfirmacion] = useState(null);
+    const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
 
     const navigate = useNavigate();
 
@@ -192,7 +194,7 @@ const Administrador = () => {
                     <div className="usuarios-count">Usuarios configurados</div>
                     <button
                         className="btn-primary"
-                        onClick={() => navigate('/admin/usuarios/crear')}
+                        onClick={() => setMostrarCrearUsuario(true)}
                     >
                         Agregar usuario
                     </button>
@@ -251,7 +253,7 @@ const Administrador = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        usuariosPaginados.map((u, index) => (
+                                        usuariosPaginados.map((u, ) => (
                                             <tr key={u.id}>
                                                 <td>{u.nombre}</td>
                                                 <td>{u.correo}</td>
@@ -351,6 +353,17 @@ const Administrador = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* MODAL CREAR USUARIO */}
+                {mostrarCrearUsuario && (
+                    <CrearUsuario
+                        onClose={() => setMostrarCrearUsuario(false)}
+                        onSuccess={() => {
+                            setMostrarCrearUsuario(false);
+                            fetchUsuarios();
+                        }}
+                    />
                 )}
             </div>
         </div>

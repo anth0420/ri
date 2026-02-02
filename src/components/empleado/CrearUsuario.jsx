@@ -1,11 +1,9 @@
 ﻿import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../../styles/CrearUsuario.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const CrearUsuario = () => {
-    const navigate = useNavigate();
+const CrearUsuario = ({ onClose, onSuccess }) => {
 
     const [formData, setFormData] = useState({
         nombreUsuario: '',
@@ -138,7 +136,7 @@ const CrearUsuario = () => {
             }
 
             alert('Usuario creado con éxito');
-            navigate('/admin/usuarios');
+            onSuccess();
         } catch (error) {
             console.error(error);
             alert('Error al crear el usuario. Por favor intente nuevamente.');
@@ -151,7 +149,7 @@ const CrearUsuario = () => {
        CANCELAR
     =============================== */
     const handleCancelar = () => {
-        navigate('/admin');
+        onClose();
     };
 
     /* ===============================
@@ -173,23 +171,25 @@ const CrearUsuario = () => {
 
                 <div className="form-group">
                     <label className="form-label">Nombre de usuario</label>
-                    <div className="search-group">
+                    <div className="input-with-icon">
                         <input
                             type="text"
                             name="nombreUsuario"
                             value={formData.nombreUsuario}
                             onChange={handleInputChange}
                             onKeyPress={handleKeyPress}
-                            className="form-input"
-                            placeholder="Nombre de usuario en Active Directory"
+                            className="form-input-search"
+                            placeholder=""
                             disabled={buscando}
                         />
                         <button
                             onClick={buscarUsuarioAD}
                             disabled={buscando || !formData.nombreUsuario.trim()}
-                            className="btn-search"
+                            className="btn-search-icon"
+                            title="Buscar usuario"
+                            type="button"
                         >
-                            {buscando ? '...' : '🔍'}
+                            🔍
                         </button>
                     </div>
                 </div>
