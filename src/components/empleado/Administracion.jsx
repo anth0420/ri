@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logo from '../../assets/logo.png';
 import '../../styles/Administracion.css';
-import { useNavigate } from "react-router-dom";
 import CrearUsuario from './CrearUsuario';
+import EditarUsuario from './EditarUsuario';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const ITEMS_PER_PAGE = 15;
@@ -26,8 +26,7 @@ const Administrador = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [usuarioConfirmacion, setUsuarioConfirmacion] = useState(null);
     const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
-
-    const navigate = useNavigate();
+    const [usuarioEditar, setUsuarioEditar] = useState(null);
 
     /* ===============================
        CARGA DE DATOS
@@ -75,7 +74,6 @@ const Administrador = () => {
     const usuariosFiltrados = useMemo(() => {
         let data = [...usuarios];
 
-        // Búsqueda
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             data = data.filter(u =>
@@ -84,12 +82,10 @@ const Administrador = () => {
             );
         }
 
-        // Filtro por rol
         if (rolFiltro) {
             data = data.filter(u => u.rol === rolFiltro);
         }
 
-        // Ordenamiento
         data.sort((a, b) => {
             let aVal, bVal;
 
@@ -200,20 +196,22 @@ const Administrador = () => {
                     </button>
                 </div>
 
-                {/* Filtros de búsqueda */}
-                <div className="gestor-search">
+                {/* ⚠️ FILTROS DE BÚSQUEDA - SIEMPRE VISIBLES ⚠️ */}
+                <div className="gestor-search" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                     <input
                         type="text"
                         placeholder="Buscar por nombre o correo..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="search-input"
+                        style={{ flex: 1 }}
                     />
 
                     <select
                         value={rolFiltro}
                         onChange={(e) => setRolFiltro(e.target.value)}
                         className="search-select"
+                        style={{ minWidth: '200px' }}
                     >
                         <option value="">Todos los roles</option>
                         <option value="Validador">Validador</option>
@@ -253,7 +251,7 @@ const Administrador = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        usuariosPaginados.map((u, ) => (
+                                        usuariosPaginados.map((u) => (
                                             <tr key={u.id}>
                                                 <td>{u.nombre}</td>
                                                 <td>{u.correo}</td>
@@ -277,10 +275,10 @@ const Administrador = () => {
                                                 <td className="action-cell">
                                                     <button
                                                         className="btn-icon-edit"
-                                                        onClick={() => navigate(`/admin/usuarios/editar/${u.id}`)}
+                                                        onClick={() => setUsuarioEditar(u)}
                                                         title="Editar usuario"
                                                     >
-                                                        ✎
+                                                        <i className="bi bi-pencil"></i>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -325,7 +323,7 @@ const Administrador = () => {
                     </>
                 )}
 
-                {/* MODAL CONFIRMACIÓN */}
+                {/* MODAL CONFIRMACIÓN ESTADO */}
                 {usuarioConfirmacion && (
                     <div className="modal-overlay">
                         <div className="modal">
@@ -361,6 +359,18 @@ const Administrador = () => {
                         onClose={() => setMostrarCrearUsuario(false)}
                         onSuccess={() => {
                             setMostrarCrearUsuario(false);
+                            fetchUsuarios();
+                        }}
+                    />
+                )}
+
+                {/* MODAL EDITAR USUARIO */}
+                {usuarioEditar && (
+                    <EditarUsuario
+                        usuario={usuarioEditar}
+                        onClose={() => setUsuarioEditar(null)}
+                        onSuccess={() => {
+                            setUsuarioEditar(null);
                             fetchUsuarios();
                         }}
                     />

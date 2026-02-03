@@ -231,7 +231,7 @@ const ConsultarSolicitud = () => {
 
     return (
         <div>
-            <div className="modal-overlay">
+            <div className="modal-overlay-s">
                 <div className="consulta-container">
                     <div className="consulta-header">
                         <img src={logo} alt="Registro Inmobiliario" className="consulta-logo" />

@@ -4,7 +4,7 @@
 /* =========================
    MODAL Y CONTENEDOR
 ========================= */
-.modal-overlay {
+.modal-overlay-s {
     position: fixed;
     inset: 0;
     background: #0052CC;

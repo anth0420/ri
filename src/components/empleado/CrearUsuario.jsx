@@ -165,6 +165,7 @@ const CrearUsuario = ({ onClose, onSuccess }) => {
        UI
     =============================== */
     return (
+
         <div className="modal-overlay-crear">
             <div className="modal-crear">
                 <h2 className="modal-title">Agregar nuevo usuario</h2>
@@ -225,11 +226,11 @@ const CrearUsuario = ({ onClose, onSuccess }) => {
                             <input
                                 type="radio"
                                 name="rol"
-                                value="Verificador"
-                                checked={formData.rol === 'Verificador'}
-                                onChange={() => handleRolChange('Verificador')}
+                                value="Validador "
+                                checked={formData.rol === 'Validador '}
+                                onChange={() => handleRolChange('Validador ')}
                             />
-                            <span>Verificador</span>
+                            <span>Validador </span>
                         </label>
                         <label className="radio-label">
                             <input

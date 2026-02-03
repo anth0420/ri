@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 using ProyectoPasantiaRI.Server.Data;
+using ProyectoPasantiaRI.Server.DTOs;
 using ProyectoPasantiaRI.Server.Models;
 
 namespace ProyectoPasantiaRI.Server.Controllers
@@ -84,7 +86,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 return BadRequest("El correo ya existe");
 
             usuario.Activo = true;
-            usuario.UltimoAcceso = null;
+            usuario.UltimoAcceso = usuario.UltimoAcceso;
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
@@ -98,7 +100,8 @@ namespace ProyectoPasantiaRI.Server.Controllers
                     usuario.Nombre,
                     usuario.Correo,
                     usuario.Rol,
-                    usuario.Activo
+                    usuario.Activo,
+                    usuario.UltimoAcceso
                 }
             );
         }
@@ -124,5 +127,34 @@ namespace ProyectoPasantiaRI.Server.Controllers
                 usuario.Activo
             });
         }
+        [HttpPut("{id:int}/rol")]
+        public async Task<IActionResult> CambiarRolUsuario(int id, [FromBody] CambiarRolDtos dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Rol))
+                return BadRequest("El rol es obligatorio");
+
+            // Roles permitidos
+            var rolesPermitidos = new[] { "Validador", "Lector", "Administrador" };
+
+            if (!rolesPermitidos.Contains(dto.Rol))
+                return BadRequest("Rol no válido");
+
+            var usuario = await _context.Usuarios.FindAsync(id);
+
+            if (usuario == null)
+                return NotFound("Usuario no encontrado");
+
+            usuario.Rol = dto.Rol;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                usuario.Id,
+                usuario.Nombre,
+                usuario.Correo,
+                usuario.Rol
+            });
+        }
+
     }
 }

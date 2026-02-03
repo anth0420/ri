@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import '../../styles/ResponderSolicitudes.css';
 import SuccessModal from '../SuccessModal';
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -24,12 +24,23 @@ const RespuestaSolicitud = () => {
     const [success, setSuccess] = useState("");
     const [errores, setErrores] = useState({});
 
+    // NUEVO: Estado para el modal de comentario
+    const [comentarioCompleto, setComentarioCompleto] = useState(null);
+
+    // Determinar la ubicacion para el modal
+    const location = useLocation();
+    const from = location.state?.from;
+    const redirectPath =
+        from === "admin"
+            ? "/admin/solicitudes"
+            : "/empleado/gestor-solicitudes";
+
     // Configuración de validaciones
     const COMENTARIO_MIN = 10;
     const COMENTARIO_MAX = 250;
     const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
     const EXTENSIONES_PERMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png'];
-    const MAX_CARACTERES_COMENTARIO = 30; // Para mostrar en tabla
+    const MAX_CARACTERES_COMENTARIO = 50; // Para mostrar en tabla
 
     /* ===============================
        CARGA DE SOLICITUD
@@ -302,14 +313,14 @@ const RespuestaSolicitud = () => {
                                     <div key={archivo.id} className="archivo-row">
                                         <div className="archivo-nombre-col">{archivo.nombreOriginal}</div>
                                         <div className="archivo-accion-col">
-                                                                                    <a
+                                            <a
                                                 href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}/ver`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 title="Ver archivo"
                                                 className="icon-link"
                                             >
-                                                <i class="bi bi-eye"></i>
+                                                <i className="bi bi-eye"></i>
                                             </a>
                                             <a
                                                 href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
@@ -332,7 +343,6 @@ const RespuestaSolicitud = () => {
                                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                                 </svg>
                                             </a>
-
                                         </div>
                                     </div>
                                 ))}
@@ -343,7 +353,7 @@ const RespuestaSolicitud = () => {
                     )}
                 </div>
 
-                {/* Historial de respuestas */}
+                {/* Historial de respuestas - CON MODAL */}
                 {solicitud.historial && solicitud.historial.length > 0 && (
                     <div className="form-group">
                         <label>Historial</label>
@@ -351,6 +361,7 @@ const RespuestaSolicitud = () => {
                             <div className="historial-header-row">
                                 <div className="historial-col-fecha">Fecha devolución</div>
                                 <div className="historial-col-comentario">Comentario</div>
+                                <div className="historial-col-accion">Acción</div>
                             </div>
 
                             {solicitud.historial.map((item, index) => (
@@ -368,23 +379,30 @@ const RespuestaSolicitud = () => {
                                         )}
                                     </div>
 
-                                    {/* COMENTARIO */}
+                                    {/* COMENTARIO TRUNCADO */}
                                     <div className="historial-col-comentario-content">
                                         {item.comentario && (
                                             <div className="historial-texto-wrapper">
-                                                <div
-                                                    className="historial-texto"
-                                                    title={
-                                                        item.comentario.length > MAX_CARACTERES_COMENTARIO
-                                                            ? item.comentario
-                                                            : ''
-                                                    }
-                                                >
+                                                <div className="historial-texto">
                                                     {item.comentario.length > MAX_CARACTERES_COMENTARIO
                                                         ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
                                                         : item.comentario}
                                                 </div>
                                             </div>
+                                        )}
+                                    </div>
+
+                                    {/* BOTÓN VER MÁS */}
+                                    <div className="historial-col-accion-content">
+                                        {item.comentario && item.comentario.length > MAX_CARACTERES_COMENTARIO && (
+                                            <button
+                                                type="button"
+                                                className="btn-ver-comentario"
+                                                onClick={() => setComentarioCompleto(item)}
+                                                title="Ver comentario completo"
+                                            >
+                                                <i className="bi bi-eye"></i>
+                                            </button>
                                         )}
                                     </div>
                                 </div>
@@ -524,13 +542,58 @@ const RespuestaSolicitud = () => {
                     </button>
                 </div>
 
+                {/* MODAL DE ÉXITO */}
                 <SuccessModal
                     message={success}
                     onClose={() => {
                         setSuccess("");
-                        navigate('/empleado/gestor-solicitudes');
+                        navigate(redirectPath);
                     }}
                 />
+
+                {/* MODAL DE COMENTARIO COMPLETO */}
+                {comentarioCompleto && (
+                    <div className="modal-overlay" onClick={() => setComentarioCompleto(null)}>
+                        <div className="modal modal-comentario" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h3>Comentario completo</h3>
+                                <button
+                                    className="modal-close-btn"
+                                    onClick={() => setComentarioCompleto(null)}
+                                    title="Cerrar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="modal-body">
+                                <div className="comentario-fecha">
+                                    <strong>Fecha de devolución:</strong>{' '}
+                                    {comentarioCompleto.fechaDevolucion
+                                        ? new Date(comentarioCompleto.fechaDevolucion).toLocaleDateString('es-DO', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })
+                                        : 'Sin fecha'}
+                                </div>
+
+                                <div className="comentario-texto-completo">
+                                    {comentarioCompleto.comentario}
+                                </div>
+                            </div>
+
+                            <div className="modal-actions">
+                                <button
+                                    className="btn-primary"
+                                    onClick={() => setComentarioCompleto(null)}
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

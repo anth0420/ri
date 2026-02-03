@@ -169,60 +169,57 @@
    HISTORIAL DE RESPUESTAS (Tabla continua)
    =============================== */
 .historial-tabla {
-    border: 1px solid #e0e0e0;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     overflow: hidden;
-    margin-top: 0.5rem;
+    background-color: white;
 }
 
 .historial-header-row {
-    background: #0047AB;
+    display: grid;
+    grid-template-columns: 150px 1fr 80px;
+    background-color: #2563eb;
     color: white;
-    display: flex;
-    padding: 0.75rem 1rem;
     font-weight: 600;
     font-size: 0.9rem;
 }
 
-.historial-col-fecha {
-    width: 200px;
-    flex-shrink: 0;
-}
-
-.historial-col-comentario {
-    flex: 1;
+.historial-col-fecha,
+.historial-col-comentario,
+.historial-col-accion {
+    padding: 12px 16px;
 }
 
 .historial-body-row {
-    background: white;
-    border-top: 1px solid #e0e0e0;
-    display: flex;
+    display: grid;
+    grid-template-columns: 150px 1fr 80px;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+    transition: background-color 0.2s;
 }
 
-    .historial-body-row:first-of-type {
-        border-top: none;
+    .historial-body-row:hover {
+        background-color: #f9fafb;
     }
 
-.historial-col-fecha-content {
-    width: 110px;
-    flex-shrink: 0;
-    padding: 1rem;
-    color: #333;
-    font-size: 0.9rem;
-    font-weight: 500;
-    border-right: 1px solid #e0e0e0;
+    .historial-body-row:last-child {
+        border-bottom: none;
+    }
+
+.historial-col-fecha-content,
+.historial-col-comentario-content,
+.historial-col-accion-content {
+    padding: 12px 16px;
 }
 
-.historial-col-comentario-content {
-    flex: 1;
-    padding: 1rem;
+.historial-texto-wrapper {
+    width: 100%;
 }
 
 .historial-texto {
-    color: #333;
-    line-height: 1.6;
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
+    color: #374151;
+    line-height: 1.5;
+    word-wrap: break-word;
 }
 
 .historial-archivos-list {
@@ -567,7 +564,107 @@
 .gestor-table tbody tr td:last-child {
     text-align: center;
 }
+.btn-ver-comentario {
+    background: none;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
+    .btn-ver-comentario:hover {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .btn-ver-comentario i {
+        font-size: 1.1rem;
+    }
+
+/* =============================================
+   MODAL DE COMENTARIO
+   ============================================= */
+
+.modal-comentario {
+    max-width: 600px;
+    width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+    .modal-close-btn:hover {
+        background-color: #f3f4f6;
+        color: #111827;
+    }
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.comentario-fecha {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+    .comentario-fecha strong {
+        color: #111827;
+    }
+
+.comentario-texto-completo {
+    padding: 1rem;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    line-height: 1.6;
+    color: #374151;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.modal-actions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
 /* ===============================
    RESPONSIVE
    =============================== */

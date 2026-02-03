@@ -19,6 +19,7 @@
 /* ===============================
    HEADER
 =============================== */
+
 .gestor-header {
     text-align: center;
     margin-bottom: 20px;
@@ -58,7 +59,7 @@
     border: none;
     padding: 10px 24px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
