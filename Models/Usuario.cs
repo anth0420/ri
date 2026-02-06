@@ -10,10 +10,14 @@ namespace ProyectoPasantiaRI.Server.Models
         [Required]
         public string Nombre { get; set; } = null!;
         [Required]
+        public string NombreUsuario { get; set; }
+        [Required]
         public string Correo { get; set; } = null!;
         [Required]
         // Validador | Lector | Administrador
         public string Rol { get; set; } = null!;
+        public int IntentosFallidos { get; set; } = 0;
+        public DateTime? BloqueadoHasta { get; set; }
 
         public bool Activo { get; set; }
 

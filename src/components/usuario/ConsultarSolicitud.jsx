@@ -2,7 +2,7 @@
 import "../../styles/ConsultarSolicitud.css";
 import logo from "../../assets/logo.png";
 import SuccessModal from "../SuccessModal";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -18,7 +18,13 @@ const ConsultarSolicitud = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
+
+
     const MAX_CARACTERES_COMENTARIO = 30; // Para mostrar en tabla
+
+    // NUEVO: Estado para el modal de comentario
+    const [comentarioCompleto, setComentarioCompleto] = useState(null);
+
 
     const EXTENSIONES_PERMITIDAS = [".pdf", ".jpg", ".jpeg", ".png"];
     const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
@@ -239,7 +245,7 @@ const ConsultarSolicitud = () => {
 
                     <h2 className="consulta-title">Verificar estatus de solicitud</h2>
 
-                   
+
                     <div className="form-group-consulta">
                         <label>Número de solicitud</label>
                         <div className="input-with-button">
@@ -361,7 +367,7 @@ const ConsultarSolicitud = () => {
                         </div>
                     )}
 
-                    {solicitud?.archivosActuales?.length > 0 && (
+                    {solicitud?.archivosActuales?.length > 1 && (
                         <div className="section-consulta">
                             <div className="section-title">Documentos de la solicitud</div>
                             <div className="document-list">
@@ -378,12 +384,14 @@ const ConsultarSolicitud = () => {
                                         </a>
                                     </div>
                                 ))}
+
                             </div>
                         </div>
                     )}
 
+
                     {solicitud?.historial?.length > 0 && (
-                        <div className="section-consulta">
+                        <div className="form-group">
                             <div className="section-title">Historial de correcciones</div>
 
                             <div className="historial-tabla">
@@ -391,6 +399,7 @@ const ConsultarSolicitud = () => {
                                     <div className="historial-col-fecha">Fecha devolución</div>
                                     <div className="historial-col-comentario">Comentario</div>
                                 </div>
+                                
 
                                 {solicitud.historial.map((item, index) => (
                                     <div key={index} className="historial-body-row">
@@ -407,25 +416,35 @@ const ConsultarSolicitud = () => {
                                             )}
                                         </div>
 
-                                        {/* Comentario */}
+                                        {/* Comentario truncado */}
                                         <div className="historial-col-comentario-content">
                                             {item.comentario && (
-                                                <div className="historial-texto-wrapper">
-                                                    <div
-                                                        className="historial-texto"
-                                                        title={
-                                                            item.comentario.length > MAX_CARACTERES_COMENTARIO
-                                                                ? item.comentario
-                                                                : ''
+                                                <div
+                                                    className={`historial-texto-wrapper ${item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                            ? "clickeable"
+                                                            : ""
+                                                        }`}
+                                                    onClick={() => {
+                                                        if (item.comentario.length > MAX_CARACTERES_COMENTARIO) {
+                                                            setComentarioCompleto(item);
                                                         }
-                                                    >
+                                                    }}
+                                                    title={
+                                                        item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                            ? "Ver comentario completo"
+                                                            : ""
+                                                    }
+                                                >
+                                                    <div className="historial-texto">
                                                         {item.comentario.length > MAX_CARACTERES_COMENTARIO
                                                             ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
                                                             : item.comentario}
                                                     </div>
                                                 </div>
                                             )}
+
                                         </div>
+
                                     </div>
                                 ))}
                             </div>
@@ -441,7 +460,7 @@ const ConsultarSolicitud = () => {
                 </div>
             </div>
 
-            {/* ✅ Modal movido FUERA del modal-overlay para que aparezca por encima */}
+            {/* ✅ Modal de éxito movido FUERA del modal-overlay para que aparezca por encima */}
             <SuccessModal
                 message={success}
                 onClose={() => {
@@ -449,6 +468,50 @@ const ConsultarSolicitud = () => {
                     navigate('/');
                 }}
             />
+
+            {/* MODAL DE COMENTARIO COMPLETO */}
+            {comentarioCompleto && (
+                <div className="modal-overlay" onClick={() => setComentarioCompleto(null)}>
+                    <div className="modal modal-comentario" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Comentario completo</h3>
+                            <button
+                                className="modal-close-btn"
+                                onClick={() => setComentarioCompleto(null)}
+                                title="Cerrar"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            <div className="comentario-fecha">
+                                <strong>Fecha de devolución:</strong>{' '}
+                                {comentarioCompleto.fechaDevolucion
+                                    ? new Date(comentarioCompleto.fechaDevolucion).toLocaleDateString('es-DO', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })
+                                    : 'Sin fecha'}
+                            </div>
+
+                            <div className="comentario-texto-completo">
+                                {comentarioCompleto.comentario}
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="btn-primary"
+                                onClick={() => setComentarioCompleto(null)}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

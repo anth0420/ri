@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ProyectoPasantiaRI.Server.DTOs;
 using System.DirectoryServices.AccountManagement;
+using System.Runtime.Versioning;
 
 namespace ProyectoPasantiaRI.Server.Controllers
 {
@@ -14,19 +15,18 @@ namespace ProyectoPasantiaRI.Server.Controllers
         {
             _configuration = configuration;
         }
-
         [HttpGet("buscar")]
+        [SupportedOSPlatform("windows")]
         public IActionResult BuscarUsuario([FromQuery] string username)
         {
             if (string.IsNullOrWhiteSpace(username))
                 return BadRequest("Username es requerido");
 
-            string domain = _configuration["ActiveDirectory:Domain"];
+            string? domain = _configuration["ActiveDirectory:Domain"];
+            if (string.IsNullOrWhiteSpace(domain))
+                return StatusCode(500, "Active Directory no configurado");
 
-            using var context = new PrincipalContext(
-                ContextType.Domain,
-                domain
-            );
+            using var context = new PrincipalContext(ContextType.Domain, domain);
 
             var user = UserPrincipal.FindByIdentity(
                 context,
@@ -39,36 +39,38 @@ namespace ProyectoPasantiaRI.Server.Controllers
 
             return Ok(new
             {
-                nombreCompleto = user.DisplayName ?? "",
-                correo = user.EmailAddress ?? ""
+                nombreCompleto = user.DisplayName ?? string.Empty,
+                correo = user.EmailAddress ?? string.Empty
             });
         }
-        [HttpPost("validar")]
-        public IActionResult ValidarUsuario([FromBody] AuthRequest request)
+
+        [HttpPost("validate")]
+        [SupportedOSPlatform("windows")]
+        public IActionResult ValidateCredentials([FromBody] AuthRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Username) ||
                 string.IsNullOrWhiteSpace(request.Password))
-                return BadRequest(false);
+                return BadRequest("Usuario y contraseña requeridos");
 
-            string domain = _configuration["ActiveDirectory:Domain"];
+            string? domain = _configuration["ActiveDirectory:Domain"];
+            if (string.IsNullOrWhiteSpace(domain))
+                return StatusCode(500, "Active Directory no configurado");
 
             try
             {
-                using var context = new PrincipalContext(
-                    ContextType.Domain,
-                    domain
-                );
+                using var context = new PrincipalContext(ContextType.Domain, domain);
 
-                bool esValido = context.ValidateCredentials(
+                bool isValid = context.ValidateCredentials(
                     request.Username,
-                    request.Password
+                    request.Password,
+                    ContextOptions.Negotiate
                 );
 
-                return Ok(esValido);
+                return Ok(new { autenticado = isValid });
             }
             catch
             {
-                return Ok(false);
+                return StatusCode(500, "Error conectando con Active Directory");
             }
         }
     }

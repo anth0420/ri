@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './routes/ProtectedRoute';
 
 // USUARIO
 import ExencionPasantia from './components/usuario/ExencionPasantia';
@@ -10,7 +11,7 @@ import LogIn from './components/empleado/Login';
 import GestorSolicitudes from './components/empleado/GestionSolicitudes';
 import RespuestaSolicitud from './components/empleado/ResponderSolicitudes';
 
-
+// ADMIN
 import Administracion from './components/empleado/Administracion';
 import CrearUsuario from './components/empleado/CrearUsuario';
 import EditarUsuario from './components/empleado/EditarUsuario';
@@ -20,25 +21,64 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* RUTAS DE USUARIO */}
+                {/* RUTAS PÚBLICAS */}
                 <Route path="/" element={<ExencionPasantia />} />
                 <Route path="/crear-solicitud" element={<CrearSolicitud />} />
                 <Route path="/verificar-estatus" element={<ConsultarSolicitud />} />
-
-                {/* RUTAS DE EMPLEADO */}
-                <Route path="/empleado" element={<LogIn />} />
-                <Route path="/empleado/gestor-solicitudes" element={<GestorSolicitudes rol="empleado" />} />
-                <Route path="/empleado/responder/:numeroSolicitud" element={<RespuestaSolicitud />} />
+                <Route path="/login" element={<LogIn />} />
 
 
-                {/* Ruta de Administrador */}
-                <Route path="/admin" element={<AdminLayout />}>
-                    <Route path="usuarios" element={<Administracion />} />
-                    <Route path="solicitudes" element={<GestorSolicitudes rol="admin" />} />
-                    <Route path="responder/:numeroSolicitud" element={<RespuestaSolicitud  />} />
+                {/* ADMIN */}
+                <Route
+                    path="/empleado"
+                    element={
+                        <ProtectedRoute allowedRoles={["Validador","Lector"]}>
+                            <AdminLayout />
+                        </ProtectedRoute>
+                    }
+                >
+                    <Route path="gestor-solicitudes" element={<GestorSolicitudes />} />
+                    <Route path="responder/:numeroSolicitud" element={
+                        <ProtectedRoute allowedRoles={["Validador"]}>
+                            <RespuestaSolicitud />
+                        </ProtectedRoute>
+                    } />
                 </Route>
-                <Route path="/admin/usuarios/crear" element={<CrearUsuario />} />
-                <Route path="/admin/usuario/editar/:id" element={<EditarUsuario /> } />
+
+
+                {/* ADMIN */}
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminLayout />
+                        </ProtectedRoute>
+                    }
+                >
+                    <Route path="usuarios" element={<Administracion />} />
+                    <Route path="solicitudes" element={<GestorSolicitudes />} />
+                    <Route path="responder/:numeroSolicitud" element={<RespuestaSolicitud />} />
+                </Route>
+
+
+
+                <Route
+                    path="/admin/usuarios/crear"
+                    element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                            <CrearUsuario />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/usuario/editar/:id"
+                    element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                            <EditarUsuario />
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
         </Router>
     );

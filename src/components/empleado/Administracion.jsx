@@ -182,6 +182,9 @@ const Administrador = () => {
                 <div className="gestor-header">
                     <img src={logo} alt="Registro Inmobiliario" className="gestor-logo" />
                 </div>
+                <div>
+                    
+                </div>
 
                 <h1 className="gestor-title">Módulo de gestión de usuarios</h1>
 
@@ -214,6 +217,7 @@ const Administrador = () => {
                         style={{ minWidth: '200px' }}
                     >
                         <option value="">Todos los roles</option>
+                        <option value="admin">Administrador</option>
                         <option value="Validador">Validador</option>
                         <option value="Lector">Lector</option>
                     </select>

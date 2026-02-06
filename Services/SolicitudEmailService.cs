@@ -81,7 +81,7 @@ namespace ProyectoPasantiaRI.Server.Services
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
-                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2025.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2026.</p>
                         </div>
                     </div>
                 </body>
@@ -158,7 +158,7 @@ namespace ProyectoPasantiaRI.Server.Services
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
-                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2025.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2026.</p>
                         </div>
                     </div>
                 </body>
@@ -290,7 +290,7 @@ namespace ProyectoPasantiaRI.Server.Services
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
-                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2025.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2026.</p>
                         </div>
                     </div>
                 </body>
@@ -372,7 +372,81 @@ namespace ProyectoPasantiaRI.Server.Services
 
                         <div class='footer'>
                             <p>Favor no responder este correo.</p>
-                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2025.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2026.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+        // CONSTANTE: Plantilla HTML para correo de estado actualizado
+        private const string TEMPLATE_Certificado_ACTUALIZADO = @"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='UTF-8'>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            background-color: #ffffff;
+                            color: #333;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        .container {{
+                            max-width: 600px;
+                            margin: 40px auto;
+                            padding: 40px 20px;
+                            text-align: center;
+                        }}
+                        .logo {{
+                            margin-bottom: 40px;
+                        }}
+                        .logo img {{
+                            width: 280px;
+                            height: auto;
+                        }}
+                        .message {{
+                            font-size: 15px;
+                            line-height: 1.6;
+                            color: #333;
+                            margin: 30px 0;
+                        }}
+                        .solicitud-number {{
+                            font-size: 15px;
+                            color: #333;
+                            margin: 25px 0;
+                        }}
+                        .solicitud-number strong {{
+                            font-weight: bold;
+                        }}
+                        .footer {{
+                            font-size: 12px;
+                            color: #666;
+                            margin-top: 50px;
+                            font-style: italic;
+                        }}
+                        .footer p {{
+                            margin: 5px 0;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                         <div class=""logo"">
+                            <img 
+                                src=""http://10.0.11.164:8096/assets/Logo-CBXdJdUE.png""
+                                alt=""Registro Inmobiliario""
+                                style=""max-width:180px;""
+                            />
+                        </div>
+                        <p class='message'>
+                            Te informamos que se han realizado actualizaciones en la Certificacion de Exencion de Pasasntia numero <strong>{0}</strong>.
+                            Adjunto A este correo,encontraras el docmuento actualizado para los fines correspondientes.
+                        </p>
+                    
+
+                        <div class='footer'>
+                            <p>Favor no responder este correo.</p>
+                            <p>El Registro Inmobiliario se reserva todos los derechos (©) 2026.</p>
                         </div>
                     </div>
                 </body>
@@ -519,7 +593,7 @@ namespace ProyectoPasantiaRI.Server.Services
 
                 if (adjuntos.Count == 0)
                 {
-                    Console.WriteLine("No se encontraron certificaciones válidas para adjuntar");
+                    
                     throw new FileNotFoundException("No se encontraron certificaciones para adjuntar");
                 }
 
@@ -535,8 +609,46 @@ namespace ProyectoPasantiaRI.Server.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error enviando correo con certificación: {ex.Message}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                throw;
+            }
+        }
+        /// <summary>
+        /// ✅ NUEVO: Envía correo con la actualizacion de  certificación adjunta cuando se completa la solicitud
+        /// </summary>
+        public async Task EnviarCorreoCertificadoActualizadoAsync(
+         Solicitud solicitud,
+        List<string> rutasCertificaciones,
+        IWebHostEnvironment env)
+        {
+            var cuerpoCorreo = string.Format(
+                TEMPLATE_Certificado_ACTUALIZADO,
+                solicitud.NumeroSolicitud
+            );
+
+            try
+            {
+                // Crear Lista de adjuntos con sus rutas completas 
+                var certificacionesPath = Path.Combine(env.ContentRootPath, "certificaciones");
+                var adjuntos = rutasCertificaciones
+                    .Select(ruta => Path.Combine(certificacionesPath, ruta))
+                    .Where(File.Exists)
+                    .ToList();
+
+                // ✅ CORREGIDO: La condición estaba invertida
+                if (adjuntos.Count == 0)
+                {
+                    throw new FileNotFoundException("No se encontraron certificados para adjuntar");
+                }
+
+                await _emailService.EnviarCorreoConAdjuntosAsync(
+                    solicitud.Correo,
+                    "Actualización de Certificación de Exención de Pasantía",
+                    cuerpoCorreo,
+                    adjuntos
+                );
+            }
+            catch (Exception ex)
+            {
                 throw;
             }
         }

@@ -2,10 +2,8 @@
 import logo from '../../assets/logo.png';
 import '../../styles/GestorSolicitudes.css';
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from '../../context/AuthContext';
 const API_URL = import.meta.env.VITE_API_URL;
-
-
 
 const GestorSolicitudes = ({ rol }) => {
     /* ===============================
@@ -18,8 +16,19 @@ const GestorSolicitudes = ({ rol }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [certificacionesMap, setCertificacionesMap] = useState({});
+
+    // Estados para el modal de actualización
+    const [showModal, setShowModal] = useState(false);
+    const [selectedSolicitud, setSelectedSolicitud] = useState(null);
+    const [motivo, setMotivo] = useState('');
+    const [archivos, setArchivos] = useState([]);
+    const [uploading, setUploading] = useState(false);
+
     const ITEMS_PER_PAGE = 15;
     const navigate = useNavigate();
+
+    const { user  } = useAuth();
+    const userRol = rol || user?.rol;
 
     /* ===============================
        CARGA DE DATOS
@@ -40,9 +49,9 @@ const GestorSolicitudes = ({ rol }) => {
             }
         } finally {
             setLoading(false);
-
         }
     };
+
     const fetchCertificaciones = async (numeroSolicitud) => {
         try {
             const response = await fetch(
@@ -65,6 +74,7 @@ const GestorSolicitudes = ({ rol }) => {
     useEffect(() => {
         fetchSolicitudes();
     }, []);
+
     useEffect(() => {
         if (activeTab === 'completadas') {
             solicitudes
@@ -77,17 +87,14 @@ const GestorSolicitudes = ({ rol }) => {
         }
     }, [activeTab, solicitudes]);
 
-
-    // Polling automático cada 30 segundos
+    // Polling automático cada 15 segundos
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchSolicitudes(true); // silent = true para no mostrar loading
-        }, 15000); // 15 segundos
+            fetchSolicitudes(true);
+        }, 15000);
 
         return () => clearInterval(interval);
     }, []);
-
-
 
     /* ===============================
        ESTADOS (ENUM VISUAL)
@@ -102,17 +109,15 @@ const GestorSolicitudes = ({ rol }) => {
         6: 'Respuesta de usuario',
     }[estado] || 'Desconocido');
 
-    // Prioridad para ordenamiento: Respuesta usuario (6) > Nueva (1) > Espera respuesta (5)
     const getEstadoPrioridad = (estado) =>
     ({
-        6: 1, // Respuesta usuario (más alta prioridad)
-        1: 2, // Nueva
-        5: 3, // Espera respuesta usuario
+        6: 1,
+        1: 2,
+        5: 3,
     }[estado] || 99);
 
     /* ===============================
        FECHAS
-       - Formato DD/MM/AA para ambas fechas
     =============================== */
     const formatearFechaCorta = (fecha) => {
         if (!fecha) return '—';
@@ -133,13 +138,11 @@ const GestorSolicitudes = ({ rol }) => {
     const solicitudesFiltradas = useMemo(() => {
         let data = [...solicitudes];
 
-        // Filtrar por pestaña
         data =
             activeTab === 'pendientes'
                 ? data.filter((s) => [1, 5, 6].includes(s.estado))
-                : data.filter((s) => s.estado === 3); // Solo solicitudes completadas
+                : data.filter((s) => s.estado === 3);
 
-        // Búsqueda - Excluye campos de Fecha y Acción/Certificaciones
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             data = data.filter(
@@ -151,10 +154,8 @@ const GestorSolicitudes = ({ rol }) => {
             );
         }
 
-        // Ordenamiento base (por defecto)
         if (!sortConfig.key) {
             if (activeTab === 'pendientes') {
-                // Para pendientes: por prioridad de estado, luego por fecha (más antigua primero)
                 data.sort((a, b) => {
                     const prioridad = getEstadoPrioridad(a.estado) - getEstadoPrioridad(b.estado);
                     if (prioridad !== 0) return prioridad;
@@ -164,16 +165,14 @@ const GestorSolicitudes = ({ rol }) => {
                     return fechaA - fechaB;
                 });
             } else {
-                // Para completadas: por fecha de solicitud (más reciente primero)
                 data.sort((a, b) => {
                     const fechaA = new Date(a.fechaCreacion);
                     const fechaB = new Date(b.fechaCreacion);
-                    return fechaB - fechaA; // Descendente
+                    return fechaB - fechaA;
                 });
             }
         }
 
-        // Ordenamiento manual (cuando el usuario hace clic en una columna)
         if (sortConfig.key) {
             data.sort((a, b) => {
                 let aVal, bVal;
@@ -192,8 +191,8 @@ const GestorSolicitudes = ({ rol }) => {
                         bVal = new Date(b.fechaCreacion);
                         break;
                     case 'fechaCertificacion':
-                        aVal = new Date(a.fechaCertificacion || 0);
-                        bVal = new Date(b.fechaCertificacion || 0);
+                        aVal = new Date(a.fechaDevolucion || 0);
+                        bVal = new Date(b.fechaDevolucion || 0);
                         break;
                     case 'estado':
                         aVal = getEstadoTexto(a.estado).toLowerCase();
@@ -221,17 +220,14 @@ const GestorSolicitudes = ({ rol }) => {
     const solicitudesPaginadas = solicitudesFiltradas.slice(startIndex, endIndex);
 
     const PAGES_PER_BLOCK = 10;
-
     const currentBlock = Math.floor((currentPage - 1) / PAGES_PER_BLOCK);
-
     const startPage = currentBlock * PAGES_PER_BLOCK + 1;
     const endPage = Math.min(startPage + PAGES_PER_BLOCK - 1, totalPages);
-
     const visiblePages = Array.from(
         { length: endPage - startPage + 1 },
         (_, i) => startPage + i
     );
-    // Resetear a página 1 cuando cambien los filtros
+
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, activeTab, sortConfig]);
@@ -263,13 +259,112 @@ const GestorSolicitudes = ({ rol }) => {
        ACCIONES
     =============================== */
     const puedeEditar = (estado) => estado === 1 || estado === 6;
-        
-    const handleEditar = (solicitud) => {
-        const basePath = rol === "admin" ? "/admin" : "/empleado";
 
+    const handleEditar = (solicitud) => {
+        const basePath = userRol === "admin" ? "/admin" : "/empleado";
         navigate(`${basePath}/responder/${solicitud.numeroSolicitud}`, {
-            state: { from: rol }
+            state: { from: userRol }
         });
+    };
+
+    /* ===============================
+       MODAL DE ACTUALIZACIÓN
+    =============================== */
+    const handleOpenModal = (solicitud) => {
+        setSelectedSolicitud(solicitud);
+        setMotivo('');
+        setArchivos([]);
+        setShowModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setSelectedSolicitud(null);
+        setMotivo('');
+        setArchivos([]);
+    };
+
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png'];
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+        for (let file of files) {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!extensionesPermitidas.includes(extension)) {
+                alert(`El archivo ${file.name} tiene un formato no permitido. Solo se aceptan: PDF, JPG, JPEG, PNG`);
+                return;
+            }
+
+            if (file.size > maxFileSize) {
+                alert(`El archivo ${file.name} excede el tamaño máximo de 5MB`);
+                return;
+            }
+        }
+
+        setArchivos(files);
+    };
+
+    const handleSubmitActualizacion = async (e) => {
+        e.preventDefault();
+
+        if (!motivo.trim()) {
+            alert('El motivo de actualización es obligatorio');
+            return;
+        }
+
+        if (motivo.length < 10) {
+            alert('El motivo debe tener al menos 10 caracteres');
+            return;
+        }
+
+        if (motivo.length > 250) {
+            alert('El motivo no puede exceder 250 caracteres');
+            return;
+        }
+
+        if (archivos.length === 0) {
+            alert('Debe cargar al menos un certificado actualizado');
+            return;
+        }
+
+        setUploading(true);
+
+        try {
+            const formData = new FormData();
+            formData.append('Motivo', motivo);
+
+            archivos.forEach((archivo) => {
+                formData.append('Archivos', archivo);
+            });
+
+            const response = await fetch(
+                `${API_URL}/api/Solicitudes/${selectedSolicitud.numeroSolicitud}/actualizar-certificado-con-motivo`,
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Error al actualizar el certificado');
+            }
+
+            alert('Certificado actualizado correctamente');
+            handleCloseModal();
+
+            // Recargar solicitudes y certificaciones
+            await fetchSolicitudes(true);
+            await fetchCertificaciones(selectedSolicitud.numeroSolicitud);
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message || 'Error al actualizar el certificado');
+        } finally {
+            setUploading(false);
+        }
     };
 
     /* ===============================
@@ -280,7 +375,6 @@ const GestorSolicitudes = ({ rol }) => {
             <div className="gestor-card">
                 <div className="gestor-header">
                     <img src={logo} alt="Registro Inmobiliario" className="gestor-logo" />
-
                 </div>
 
                 <h1 className="gestor-title">
@@ -385,7 +479,6 @@ const GestorSolicitudes = ({ rol }) => {
                                                             <span className="action-disabled">—</span>
                                                         )}
                                                     </td>
-
                                                 </tr>
                                             ))
                                         )}
@@ -431,7 +524,14 @@ const GestorSolicitudes = ({ rol }) => {
                                                     <td>{formatearFechaCorta(s.fechaCreacion)}</td>
                                                     <td>{formatearFechaCorta(s.fechaDevolucion)}</td>
                                                     <td className="action-cell">
-                                                        {certificacionesMap[s.numeroSolicitud]?.length === 1 ? (
+                                                        <button
+                                                            className="btn-download"
+                                                            onClick={() => handleOpenModal(s)}
+                                                            title="Actualizar certificado"
+                                                        >
+                                                            <i class="bi bi-key"></i>
+                                                        </button>
+                                                        {certificacionesMap[s.numeroSolicitud]?.length >= 1 ? (
                                                             <button
                                                                 className="btn-download"
                                                                 onClick={() => {
@@ -442,7 +542,7 @@ const GestorSolicitudes = ({ rol }) => {
                                                                         "noopener,noreferrer"
                                                                     );
                                                                 }}
-                                                                title={certificacionesMap[s.numeroSolicitud][0].nombreArchivo}
+                                                                title={certificacionesMap[s.numeroSolicitud][0]?.nombreArchivo || 'Descargar certificado'}
                                                             >
                                                                 <i className="bi bi-download"></i>
                                                             </button>
@@ -461,8 +561,6 @@ const GestorSolicitudes = ({ rol }) => {
                         {/* Paginación */}
                         {totalPages > 1 && (
                             <div className="gestor-pagination">
-
-                                {/* Botón Anterior */}
                                 {currentBlock > 0 && (
                                     <button
                                         className="page-nav"
@@ -472,7 +570,6 @@ const GestorSolicitudes = ({ rol }) => {
                                         «
                                     </button>
                                 )}
-                                {/*Números de página visibles */}
                                 {visiblePages.map((pageNum) => (
                                     <button
                                         key={pageNum}
@@ -482,7 +579,6 @@ const GestorSolicitudes = ({ rol }) => {
                                         {pageNum}
                                     </button>
                                 ))}
-                                {/* Botón Siguiente */}
                                 {endPage < totalPages && (
                                     <button
                                         className="page-nav"
@@ -495,7 +591,6 @@ const GestorSolicitudes = ({ rol }) => {
                             </div>
                         )}
 
-                        {/* Información de paginación */}
                         {solicitudesFiltradas.length > 0 && (
                             <div className="pagination-info">
                                 Mostrando {startIndex + 1} - {Math.min(endIndex, solicitudesFiltradas.length)} de {solicitudesFiltradas.length} solicitudes
@@ -504,6 +599,80 @@ const GestorSolicitudes = ({ rol }) => {
                     </>
                 )}
             </div>
+
+            {/* MODAL DE ACTUALIZACIÓN */}
+            {showModal && (
+                <div className="modal-overlay" onClick={handleCloseModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Actualizar Certificado</h2>
+                            <button className="modal-close" onClick={handleCloseModal}>×</button>
+                        </div>
+
+                        <form onSubmit={handleSubmitActualizacion}>
+                            <div className="modal-body">
+                                <p><strong>Solicitud:</strong> {selectedSolicitud?.numeroSolicitud}</p>
+                                <p><strong>Solicitante:</strong> {selectedSolicitud?.nombre}</p>
+
+                                <div className="form-group">
+                                    <label htmlFor="motivo">Motivo de actualización *</label>
+                                    <textarea
+                                        id="motivo"
+                                        value={motivo}
+                                        onChange={(e) => setMotivo(e.target.value)}
+                                        placeholder="Explique el motivo de la actualización (10-250 caracteres)"
+                                        rows="4"
+                                        maxLength="250"
+                                        required
+                                    />
+                                    <small>{motivo.length}/250 caracteres</small>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="archivos">Nuevo(s) certificado(s) *</label>
+                                    <input
+                                        type="file"
+                                        id="archivos"
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        multiple
+                                        required
+                                    />
+                                    <small>Formatos permitidos: PDF, JPG, JPEG, PNG (máx. 5MB cada uno)</small>
+                                    {archivos.length > 0 && (
+                                        <div className="files-list">
+                                            <p><strong>Archivos seleccionados:</strong></p>
+                                            <ul>
+                                                {archivos.map((file, index) => (
+                                                    <li key={index}>{file.name}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={handleCloseModal}
+                                    disabled={uploading}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    disabled={uploading}
+                                >
+                                    {uploading ? 'Enviando...' : 'Actualizar Certificado'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

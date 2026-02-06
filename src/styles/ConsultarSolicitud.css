@@ -1,4 +1,4 @@
-* {
+Ôªø* {
     font-family: 'Montserrat', sans-serif;
 }
 /* =========================
@@ -17,7 +17,7 @@
 .consulta-container {
     background: #fff;
     width: 100%;
-    max-width: 460px;
+    max-width: 580px;
     max-height: 95vh;
     overflow-y: auto;
     border-radius: 12px;
@@ -39,7 +39,7 @@
 }
 
 /* =========================
-   TÕTULO
+   T√çTULO
 ========================= */
 .consulta-title {
     font-size: 20px;
@@ -260,7 +260,7 @@
     }
 
 /* =========================
-   CLEARFIX PARA BOT”N FLOTANTE
+   CLEARFIX PARA BOT√ìN FLOTANTE
 ========================= */
 .consulta-container::after {
     content: "";
@@ -359,7 +359,7 @@
     }
 
 /* =========================
-   BOT”N ENVIAR ARCHIVOS
+   BOT√ìN ENVIAR ARCHIVOS
 ========================= */
 .btn-enviar-archivos {
     width: 100%;

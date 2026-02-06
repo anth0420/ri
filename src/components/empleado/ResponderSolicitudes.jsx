@@ -361,7 +361,7 @@ const RespuestaSolicitud = () => {
                             <div className="historial-header-row">
                                 <div className="historial-col-fecha">Fecha devolución</div>
                                 <div className="historial-col-comentario">Comentario</div>
-                                <div className="historial-col-accion">Acción</div>
+                                
                             </div>
 
                             {solicitud.historial.map((item, index) => (
@@ -379,30 +379,31 @@ const RespuestaSolicitud = () => {
                                         )}
                                     </div>
 
-                                    {/* COMENTARIO TRUNCADO */}
+                                    {/* Comentario truncado */}
                                     <div className="historial-col-comentario-content">
                                         {item.comentario && (
-                                            <div className="historial-texto-wrapper">
+                                            <div
+                                                className={`historial-texto-wrapper ${item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                    ? "clickeable"
+                                                    : ""
+                                                    }`}
+                                                onClick={() => {
+                                                    if (item.comentario.length > MAX_CARACTERES_COMENTARIO) {
+                                                        setComentarioCompleto(item);
+                                                    }
+                                                }}
+                                                title={
+                                                    item.comentario.length > MAX_CARACTERES_COMENTARIO
+                                                        ? "Ver comentario completo"
+                                                        : ""
+                                                }
+                                            >
                                                 <div className="historial-texto">
                                                     {item.comentario.length > MAX_CARACTERES_COMENTARIO
                                                         ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
                                                         : item.comentario}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-
-                                    {/* BOTÓN VER MÁS */}
-                                    <div className="historial-col-accion-content">
-                                        {item.comentario && item.comentario.length > MAX_CARACTERES_COMENTARIO && (
-                                            <button
-                                                type="button"
-                                                className="btn-ver-comentario"
-                                                onClick={() => setComentarioCompleto(item)}
-                                                title="Ver comentario completo"
-                                            >
-                                                <i className="bi bi-eye"></i>
-                                            </button>
                                         )}
                                     </div>
                                 </div>

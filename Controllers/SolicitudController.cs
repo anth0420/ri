@@ -441,6 +441,105 @@ namespace ProyectoPasantiaRI.Server.Controllers
             return Ok("Certificación enviada correctamente");
         }
 
+        //===================
+        //aCTUALIZAR CERTIFICADO 
+        //===================
+        [HttpPost("{numeroSolicitud}/actualizar-certificado-con-motivo")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ActualizarCertificadoConMotivo(
+        string numeroSolicitud,
+        [FromForm] ActualizarCertificadoConMotivoDto dto)
+        {
+            // =========================
+            // VALIDACIONES
+            // =========================
+            if (string.IsNullOrWhiteSpace(dto.Motivo))
+                return BadRequest("El motivo de actualización es obligatorio");
+
+            if (dto.Motivo.Length < 10)
+                return BadRequest("El motivo debe tener al menos 10 caracteres");
+
+            if (dto.Motivo.Length > 250)
+                return BadRequest("El motivo no puede exceder 250 caracteres");
+
+            if (dto.Archivos == null || !dto.Archivos.Any())
+                return BadRequest("Debe cargar al menos un certificado actualizado");
+
+            var extensionesPermitidas = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
+            const long maxFileSize = 5 * 1024 * 1024;
+
+            foreach (var archivo in dto.Archivos)
+            {
+                if (archivo.Length == 0)
+                    return BadRequest($"El archivo {archivo.FileName} está vacío");
+
+                if (archivo.Length > maxFileSize)
+                    return BadRequest($"El archivo {archivo.FileName} excede el tamaño máximo de 5MB");
+
+                var extension = Path.GetExtension(archivo.FileName).ToLower();
+                if (!extensionesPermitidas.Contains(extension))
+                    return BadRequest($"Formato no permitido: {archivo.FileName}");
+            }
+
+            // =========================
+            // OBTENER SOLICITUD
+            // =========================
+            var solicitud = await _context.Solicitudes
+                .Include(s => s.Archivos)
+                .FirstOrDefaultAsync(s => s.NumeroSolicitud == numeroSolicitud);
+
+            if (solicitud == null)
+                return NotFound("Solicitud no encontrada");
+
+            // =========================
+            // HISTORIAL
+            // =========================
+            var historial = new SolicitudHistorial
+            {
+                SolicitudId = solicitud.Id,
+                FechaDevolucion = DateTime.Now,
+                Comentario = dto.Motivo
+            };
+
+            foreach (var archivo in solicitud.Archivos.Where(a => a.EsActual))
+            {
+                archivo.EsActual = false;
+                archivo.SolicitudHistorial = historial;
+            }
+
+            _context.SolicitudHistorials.Add(historial);
+
+            // =========================
+            // GUARDAR CERTIFICADOS
+            // =========================
+            var rutasCertificaciones = await GuardarCertificaciones(dto.Archivos, solicitud.Id);
+
+            solicitud.MarcarCompletada();
+            await _context.SaveChangesAsync();
+
+            // =========================
+            // CORREO
+            // =========================
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.EnviarCorreoCertificadoActualizadoAsync(
+                        solicitud,
+                        rutasCertificaciones,
+                        _env
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error enviando correo: {ex.Message}");
+                }
+            });
+
+            return Ok("Certificado actualizado y enviado correctamente");
+        }
+
+
         // =========================
         // DESCARGAR CERTIFICACIÓN
         // =========================
@@ -537,6 +636,7 @@ namespace ProyectoPasantiaRI.Server.Controllers
             // 👇 CLAVE: NO pasar el nombre del archivo
             return File(fileBytes, contentType);
         }
+
         // =========================
         // GUARDAR ARCHIVOS
         // =========================
