@@ -1,26 +1,31 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useCallback } from "react";
 import "../../styles/CrearUsuario.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// ==================== CONSTANTES ====================
+
+const ROLES = ['Validador', 'Lector'];
+
+// ==================== COMPONENTE PRINCIPAL ====================
+
 const EditarUsuario = ({ usuario, onClose, onSuccess }) => {
-    /* ===============================
-       ESTADO
-    =============================== */
+    // ==================== ESTADO ====================
+
     const [rolActual, setRolActual] = useState(usuario.rol);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState(null);
 
-    /* ===============================
-       DETECTAR CAMBIOS
-    =============================== */
-    const haycambios = rolActual !== usuario.rol;
+    // ==================== FUNCIONES DE VALIDACIÓN ====================
 
-    /* ===============================
-       CAMBIAR ROL → API
-    =============================== */
-    const handleGuardar = async () => {
-        if (!haycambios) return;
+    const hayCambios = useCallback(() => {
+        return rolActual !== usuario.rol;
+    }, [rolActual, usuario.rol]);
+
+    // ==================== FUNCIONES DE API ====================
+
+    const guardarCambios = useCallback(async () => {
+        if (!hayCambios()) return;
 
         try {
             setGuardando(true);
@@ -46,83 +51,105 @@ const EditarUsuario = ({ usuario, onClose, onSuccess }) => {
         } finally {
             setGuardando(false);
         }
+    }, [hayCambios, rolActual, usuario.id, onSuccess]);
+
+    // ==================== MANEJADORES DE EVENTOS ====================
+
+    const handleRolChange = useCallback((rol) => {
+        setRolActual(rol);
+        setError(null);
+    }, []);
+
+    const handleGuardar = useCallback(() => {
+        guardarCambios();
+    }, [guardarCambios]);
+
+    // ==================== RENDER - CAMPOS DE SOLO LECTURA ====================
+
+    const renderCamposSoloLectura = () => (
+        <>
+            <div className="form-group">
+                <label className="form-label">Nombre completo</label>
+                <input
+                    type="text"
+                    value={usuario.nombre}
+                    className="form-input"
+                    disabled
+                />
+            </div>
+
+            <div className="form-group">
+                <label className="form-label">Correo electrónico</label>
+                <input
+                    type="email"
+                    value={usuario.correo}
+                    className="form-input"
+                    disabled
+                />
+            </div>
+
+            <div className="form-group">
+                <label className="form-label">Estado actual</label>
+                <input
+                    type="text"
+                    value={usuario.activo ? "Activo" : "Inactivo"}
+                    className="form-input"
+                    disabled
+                />
+            </div>
+        </>
+    );
+
+    // ==================== RENDER - SELECTOR DE ROL ====================
+
+    const renderSelectorRol = () => (
+        <div className="form-group">
+            <label className="form-label">Seleccionar rol:</label>
+            <div className="radio-group">
+                {ROLES.map(rol => (
+                    <label className="radio-label" key={rol}>
+                        <input
+                            type="radio"
+                            name="rol"
+                            value={rol}
+                            checked={rolActual === rol}
+                            onChange={() => handleRolChange(rol)}
+                            disabled={guardando}
+                        />
+                        <span>{rol}</span>
+                    </label>
+                ))}
+            </div>
+        </div>
+    );
+
+    // ==================== RENDER - INDICADOR DE CAMBIO ====================
+
+    const renderIndicadorCambio = () => {
+        if (!hayCambios()) return null;
+
+        return (
+            <div className="cambio-pendiente">
+                Rol actual: <strong>{usuario.rol}</strong> → Nuevo rol: <strong>{rolActual}</strong>
+            </div>
+        );
     };
 
-    /* ===============================
-       UI
-    =============================== */
+    // ==================== RENDER PRINCIPAL ====================
+
     return (
         <div className="modal-overlay-crear">
             <div className="modal-crear">
                 <h2 className="modal-title">Editar usuario</h2>
 
-                {/* Datos de solo lectura */}
-                <div className="form-group">
-                    <label className="form-label">Nombre completo</label>
-                    <input
-                        type="text"
-                        value={usuario.nombre}
-                        className="form-input"
-                        disabled
-                    />
-                </div>
+                {renderCamposSoloLectura()}
+                {renderSelectorRol()}
+                {renderIndicadorCambio()}
 
-                <div className="form-group">
-                    <label className="form-label">Correo electrónico</label>
-                    <input
-                        type="email"
-                        value={usuario.correo}
-                        className="form-input"
-                        disabled
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label className="form-label">Estado actual</label>
-                    <input
-                        type="text"
-                        value={usuario.activo ? "Activo" : "Inactivo"}
-                        className="form-input"
-                        disabled
-                    />
-                </div>
-
-                {/* Rol editable con radios */}
-                <div className="form-group">
-                    <label className="form-label">Seleccionar rol:</label>
-                    <div className="radio-group">
-                        {["Validador", "Lector"].map((rol) => (
-                            <label className="radio-label" key={rol}>
-                                <input
-                                    type="radio"
-                                    name="rol"
-                                    value={rol}
-                                    checked={rolActual === rol}
-                                    onChange={() => {
-                                        setRolActual(rol);
-                                        setError(null);
-                                    }}
-                                    disabled={guardando}
-                                />
-                                <span>{rol}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Indicador de cambio pendiente */}
-                {haycambios && (
-                    <div className="cambio-pendiente">
-                        Rol actual: <strong>{usuario.rol}</strong> → Nuevo rol: <strong>{rolActual}</strong>
-                    </div>
-                )}
-
-                {/* Mensaje de error */}
                 {error && (
                     <div className="error-message">{error}</div>
                 )}
 
-                {/* Acciones */}
                 <div className="modal-actions-crear">
                     <button
                         onClick={onClose}
@@ -133,8 +160,8 @@ const EditarUsuario = ({ usuario, onClose, onSuccess }) => {
                     </button>
                     <button
                         onClick={handleGuardar}
-                        disabled={!haycambios || guardando}
-                        className={`btn-agregar ${!haycambios ? "disabled" : ""}`}
+                        disabled={!hayCambios() || guardando}
+                        className={`btn-agregar ${!hayCambios() ? "disabled" : ""}`}
                     >
                         {guardando ? "Guardando..." : "Guardar"}
                     </button>

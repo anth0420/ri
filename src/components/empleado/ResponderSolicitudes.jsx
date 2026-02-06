@@ -1,17 +1,34 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import '../../styles/ResponderSolicitudes.css';
 import SuccessModal from '../SuccessModal';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// ==================== CONSTANTES ====================
+
+const CONSTANTS = {
+    COMENTARIO_MIN: 10,
+    COMENTARIO_MAX: 250,
+    TAMANO_MAXIMO: 5 * 1024 * 1024, // 5MB
+    EXTENSIONES_PERMITIDAS: ['.pdf', '.jpg', '.jpeg', '.png'],
+    MAX_CARACTERES_COMENTARIO: 50, // Para mostrar en tabla
+};
+
+const TIPOS_RESPUESTA = {
+    CORRECCIONES: 'correcciones',
+    CERTIFICACION: 'certificacion',
+};
+
+// ==================== COMPONENTE PRINCIPAL ====================
+
 const RespuestaSolicitud = () => {
     const { numeroSolicitud } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
-    /* ===============================
-       ESTADO
-    =============================== */
+    // ==================== ESTADO ====================
+
     const [solicitud, setSolicitud] = useState(null);
     const [respuesta, setRespuesta] = useState('');
     const [comentario, setComentario] = useState('');
@@ -23,72 +40,34 @@ const RespuestaSolicitud = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [errores, setErrores] = useState({});
-
-    // NUEVO: Estado para el modal de comentario
     const [comentarioCompleto, setComentarioCompleto] = useState(null);
 
-    // Determinar la ubicacion para el modal
-    const location = useLocation();
     const from = location.state?.from;
-    const redirectPath =
-        from === "admin"
-            ? "/admin/solicitudes"
-            : "/empleado/gestor-solicitudes";
+    const redirectPath = from === "admin"
+        ? "/admin/solicitudes"
+        : "/empleado/gestor-solicitudes";
 
-    // Configuración de validaciones
-    const COMENTARIO_MIN = 10;
-    const COMENTARIO_MAX = 250;
-    const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
-    const EXTENSIONES_PERMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png'];
-    const MAX_CARACTERES_COMENTARIO = 50; // Para mostrar en tabla
+    // ==================== FUNCIONES DE UTILIDAD ====================
 
-    /* ===============================
-       CARGA DE SOLICITUD
-    =============================== */
-    useEffect(() => {
-        const fetchSolicitud = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch(`${API_URL}/api/Solicitudes/${numeroSolicitud}`);
-                if (!response.ok) throw new Error("No se encontró la solicitud");
-                const data = await response.json();
-                setSolicitud(data);
-                setArchivos(data.archivosActuales || []);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSolicitud();
-    }, [numeroSolicitud]);
-
-    /* ===============================
-       VALIDACIÓN DE ARCHIVOS
-    =============================== */
-    const validarArchivo = (file) => {
+    const validarArchivo = useCallback((file) => {
         const extension = "." + file.name.split(".").pop().toLowerCase();
 
-        if (!EXTENSIONES_PERMITIDAS.includes(extension)) {
-            return `Formato no permitido. Solo se aceptan: ${EXTENSIONES_PERMITIDAS.join(", ")}`;
+        if (!CONSTANTS.EXTENSIONES_PERMITIDAS.includes(extension)) {
+            return `Formato no permitido. Solo se aceptan: ${CONSTANTS.EXTENSIONES_PERMITIDAS.join(", ")}`;
         }
 
-        if (file.size > TAMANO_MAXIMO) {
+        if (file.size > CONSTANTS.TAMANO_MAXIMO) {
             return "El archivo no debe superar los 5 MB.";
         }
 
         return null;
-    };
+    }, []);
 
-    /* ===============================
-       MANEJO DE ARCHIVOS
-    =============================== */
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
+    const procesarArchivos = useCallback((files) => {
         if (files.length === 0) return;
 
         const nuevosArchivos = [];
-        let erroresValidacion = [];
+        const erroresValidacion = [];
 
         for (const file of files) {
             const errorValidacion = validarArchivo(file);
@@ -105,111 +84,112 @@ const RespuestaSolicitud = () => {
         }
 
         setError("");
-        setArchivosSeleccionados([...archivosSeleccionados, ...nuevosArchivos]);
-    };
+        setArchivosSeleccionados(prev => [...prev, ...nuevosArchivos]);
+    }, [validarArchivo]);
 
-    const handleDragOver = (e) => {
+    // ==================== FUNCIONES DE API ====================
+
+    const fetchSolicitud = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${API_URL}/api/Solicitudes/${numeroSolicitud}`);
+            if (!response.ok) throw new Error("No se encontró la solicitud");
+            const data = await response.json();
+            setSolicitud(data);
+            setArchivos(data.archivosActuales || []);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [numeroSolicitud]);
+
+    // ==================== EFECTOS ====================
+
+    useEffect(() => {
+        fetchSolicitud();
+    }, [fetchSolicitud]);
+
+    // ==================== MANEJADORES DE EVENTOS ====================
+
+    const handleFileChange = useCallback((e) => {
+        const files = Array.from(e.target.files);
+        procesarArchivos(files);
+    }, [procesarArchivos]);
+
+    const handleDragOver = useCallback((e) => {
         e.preventDefault();
         setIsDragging(true);
-    };
+    }, []);
 
-    const handleDragLeave = () => {
+    const handleDragLeave = useCallback(() => {
         setIsDragging(false);
-    };
+    }, []);
 
-    const handleDrop = (e) => {
+    const handleDrop = useCallback((e) => {
         e.preventDefault();
         setIsDragging(false);
-
         const files = Array.from(e.dataTransfer.files);
-        if (files.length === 0) return;
+        procesarArchivos(files);
+    }, [procesarArchivos]);
 
-        const nuevosArchivos = [];
-        let erroresValidacion = [];
+    const eliminarArchivo = useCallback((index) => {
+        setArchivosSeleccionados(prev => prev.filter((_, i) => i !== index));
+    }, []);
 
-        for (const file of files) {
-            const errorValidacion = validarArchivo(file);
-            if (errorValidacion) {
-                erroresValidacion.push(`${file.name}: ${errorValidacion}`);
-            } else {
-                nuevosArchivos.push(file);
-            }
-        }
-
-        if (erroresValidacion.length > 0) {
-            setError(erroresValidacion.join("\n"));
-            return;
-        }
-
-        setError("");
-        setArchivosSeleccionados([...archivosSeleccionados, ...nuevosArchivos]);
-    };
-
-    const eliminarArchivo = (index) => {
-        setArchivosSeleccionados(archivosSeleccionados.filter((_, i) => i !== index));
-    };
-
-    /* ===============================
-       VALIDACIÓN DE COMENTARIO
-    =============================== */
-    const handleComentarioChange = (e) => {
+    const handleComentarioChange = useCallback((e) => {
         const valor = e.target.value;
         setComentario(valor);
 
-        if (respuesta === 'correcciones') {
-            if (valor.length < COMENTARIO_MIN) {
-                setErrores({
-                    ...errores,
-                    comentario: `El comentario debe tener al menos ${COMENTARIO_MIN} caracteres`
-                });
-            } else if (valor.length > COMENTARIO_MAX) {
-                setErrores({
-                    ...errores,
-                    comentario: `El comentario no puede exceder ${COMENTARIO_MAX} caracteres`
-                });
+        if (respuesta === TIPOS_RESPUESTA.CORRECCIONES) {
+            if (valor.length < CONSTANTS.COMENTARIO_MIN) {
+                setErrores(prev => ({
+                    ...prev,
+                    comentario: `El comentario debe tener al menos ${CONSTANTS.COMENTARIO_MIN} caracteres`
+                }));
+            } else if (valor.length > CONSTANTS.COMENTARIO_MAX) {
+                setErrores(prev => ({
+                    ...prev,
+                    comentario: `El comentario no puede exceder ${CONSTANTS.COMENTARIO_MAX} caracteres`
+                }));
             } else {
-                setErrores({ ...errores, comentario: null });
+                setErrores(prev => ({ ...prev, comentario: null }));
             }
         }
-    };
+    }, [respuesta]);
 
-    /* ===============================
-       CAMBIO DE TIPO DE RESPUESTA
-    =============================== */
-    const handleRespuestaChange = (e) => {
+    const handleRespuestaChange = useCallback((e) => {
         const valor = e.target.value;
         setRespuesta(valor);
         setComentario('');
         setArchivosSeleccionados([]);
         setErrores({});
         setError('');
-    };
+    }, []);
 
-    /* ===============================
-       VALIDACIÓN DE FORMULARIO
-    =============================== */
-    const formularioValido = () => {
+    // ==================== FUNCIONES DE VALIDACIÓN ====================
+
+    const formularioValido = useCallback(() => {
         if (!respuesta) return false;
 
-        if (respuesta === 'correcciones') {
+        if (respuesta === TIPOS_RESPUESTA.CORRECCIONES) {
             return (
-                comentario.length >= COMENTARIO_MIN &&
-                comentario.length <= COMENTARIO_MAX &&
+                comentario.length >= CONSTANTS.COMENTARIO_MIN &&
+                comentario.length <= CONSTANTS.COMENTARIO_MAX &&
                 !errores.comentario
             );
         }
 
-        if (respuesta === 'certificacion') {
+        if (respuesta === TIPOS_RESPUESTA.CERTIFICACION) {
             return archivosSeleccionados.length > 0;
         }
 
         return false;
-    };
+    }, [respuesta, comentario, errores, archivosSeleccionados]);
 
-    /* ===============================
-       ENVÍO DE RESPUESTA
-    =============================== */
-    const handleEnviarRespuesta = async () => {
+    // ==================== FUNCIONES DE ENVÍO ====================
+
+    const handleEnviarRespuesta = useCallback(async () => {
         if (!formularioValido()) {
             setError('Por favor complete todos los campos obligatorios correctamente');
             return;
@@ -219,7 +199,7 @@ const RespuestaSolicitud = () => {
             setEnviando(true);
             setError('');
 
-            if (respuesta === 'correcciones') {
+            if (respuesta === TIPOS_RESPUESTA.CORRECCIONES) {
                 const res = await fetch(
                     `${API_URL}/api/Solicitudes/${solicitud.id}/devolver`,
                     {
@@ -231,12 +211,11 @@ const RespuestaSolicitud = () => {
                     }
                 );
 
-                if (!res.ok) throw new Error();
-
+                if (!res.ok) throw new Error('Error al enviar correcciones');
                 setSuccess('La solicitud fue devuelta correctamente para correcciones.');
             }
 
-            if (respuesta === 'certificacion') {
+            if (respuesta === TIPOS_RESPUESTA.CERTIFICACION) {
                 const formData = new FormData();
                 archivosSeleccionados.forEach(archivo => {
                     formData.append('archivos', archivo);
@@ -250,22 +229,295 @@ const RespuestaSolicitud = () => {
                     }
                 );
 
-                if (!res.ok) throw new Error();
-
+                if (!res.ok) throw new Error('Error al enviar certificación');
                 setSuccess('La certificación fue enviada correctamente.');
             }
-
         } catch (err) {
-            console.log(err);
+            console.error(err);
             setError('Ocurrió un error al enviar la respuesta.');
         } finally {
             setEnviando(false);
         }
+    }, [respuesta, formularioValido, solicitud?.id, numeroSolicitud, archivosSeleccionados, comentario]);
+
+    // ==================== RENDER - DOCUMENTOS ====================
+
+    const renderDocumentos = () => {
+        if (archivos.length === 0) {
+            return <p>No hay archivos cargados.</p>;
+        }
+
+        return (
+            <div className="archivos-table">
+                <div className="archivos-header">
+                    <div className="header-col">Documento</div>
+                    <div className="header-col-accion">Acción</div>
+                </div>
+                <div className="archivos-body">
+                    {archivos.map((archivo) => (
+                        <div key={archivo.id} className="archivo-row">
+                            <div className="archivo-nombre-col">{archivo.nombreOriginal}</div>
+                            <div className="archivo-accion-col">
+                                <a
+                                    href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}/ver`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Ver archivo"
+                                    className="icon-link"
+                                >
+                                    <i className="bi bi-eye"></i>
+                                </a>
+                                <a
+                                    href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
+                                    download={archivo.nombreOriginal}
+                                    title="Descargar archivo"
+                                    className="icon-link"
+                                >
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     };
 
-    /* ===============================
-       UI
-    =============================== */
+    // ==================== RENDER - HISTORIAL ====================
+
+    const renderHistorial = () => {
+        if (!solicitud?.historial || solicitud.historial.length === 0) {
+            return null;
+        }
+
+        return (
+            <div className="form-group">
+                <label>Historial</label>
+                <div className="historial-tabla">
+                    <div className="historial-header-row">
+                        <div className="historial-col-fecha">Fecha devolución</div>
+                        <div className="historial-col-comentario">Comentario</div>
+                    </div>
+
+                    {solicitud.historial.map((item, index) => (
+                        <div key={index} className="historial-body-row">
+                            <div className="historial-col-fecha-content">
+                                {item.fechaDevolucion ? (
+                                    new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit'
+                                    })
+                                ) : (
+                                    'Sin fecha'
+                                )}
+                            </div>
+
+                            <div className="historial-col-comentario-content">
+                                {item.comentario && (
+                                    <div
+                                        className={`historial-texto-wrapper ${item.comentario.length > CONSTANTS.MAX_CARACTERES_COMENTARIO
+                                            ? "clickeable"
+                                            : ""
+                                            }`}
+                                        onClick={() => {
+                                            if (item.comentario.length > CONSTANTS.MAX_CARACTERES_COMENTARIO) {
+                                                setComentarioCompleto(item);
+                                            }
+                                        }}
+                                        title={
+                                            item.comentario.length > CONSTANTS.MAX_CARACTERES_COMENTARIO
+                                                ? "Ver comentario completo"
+                                                : ""
+                                        }
+                                    >
+                                        <div className="historial-texto">
+                                            {item.comentario.length > CONSTANTS.MAX_CARACTERES_COMENTARIO
+                                                ? `${item.comentario.substring(0, CONSTANTS.MAX_CARACTERES_COMENTARIO)}...`
+                                                : item.comentario}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // ==================== RENDER - SECCIÓN COMENTARIOS ====================
+
+    const renderSeccionComentarios = () => {
+        if (respuesta !== TIPOS_RESPUESTA.CORRECCIONES) {
+            return null;
+        }
+
+        return (
+            <div className="form-group">
+                <label>
+                    Comentarios <span className="required">*</span>
+                </label>
+                <textarea
+                    value={comentario}
+                    onChange={handleComentarioChange}
+                    placeholder={`Ingrese un comentario (mínimo ${CONSTANTS.COMENTARIO_MIN}, máximo ${CONSTANTS.COMENTARIO_MAX} caracteres)`}
+                    maxLength={CONSTANTS.COMENTARIO_MAX}
+                    disabled={enviando}
+                    rows={5}
+                />
+                <div className="caracteres-contador">
+                    {comentario.length}/{CONSTANTS.COMENTARIO_MAX} caracteres
+                </div>
+                {errores.comentario && (
+                    <div className="error-message">{errores.comentario}</div>
+                )}
+            </div>
+        );
+    };
+
+    // ==================== RENDER - SECCIÓN ARCHIVOS ====================
+
+    const renderSeccionArchivos = () => {
+        if (respuesta !== TIPOS_RESPUESTA.CERTIFICACION) {
+            return null;
+        }
+
+        return (
+            <div className="form-group">
+                <label>
+                    Cargar documentos <span className="required">*</span>
+                </label>
+                <div
+                    className={`upload-box ${isDragging ? 'dragging' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !enviando && document.getElementById('file-upload').click()}
+                >
+                    <input
+                        type="file"
+                        id="file-upload"
+                        onChange={handleFileChange}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        disabled={enviando}
+                        multiple
+                        style={{ display: 'none' }}
+                    />
+                    <svg
+                        className="upload-icon"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                    </svg>
+                    <p>{archivosSeleccionados.length > 0
+                        ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)`
+                        : "Arrastra o selecciona documentos"}
+                    </p>
+                    <small>Formatos permitidos: PDF, JPG, JPEG, PNG (máx. 5MB cada uno)</small>
+                </div>
+
+                {error && (
+                    <div className="error-message-archivos">
+                        {error}
+                    </div>
+                )}
+
+                {archivosSeleccionados.length > 0 && (
+                    <div className="archivos-seleccionados-list">
+                        {archivosSeleccionados.map((archivo, index) => (
+                            <div key={index} className="archivo-seleccionado-item">
+                                <span className="archivo-seleccionado-nombre">{archivo.name}</span>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        eliminarArchivo(index);
+                                    }}
+                                    className="btn-eliminar-archivo"
+                                    disabled={enviando}
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // ==================== RENDER - MODAL COMENTARIO ====================
+
+    const renderModalComentario = () => {
+        if (!comentarioCompleto) return null;
+
+        return (
+            <div className="modal-overlay" onClick={() => setComentarioCompleto(null)}>
+                <div className="modal modal-comentario" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h3>Comentario completo</h3>
+                        <button
+                            className="modal-close-btn"
+                            onClick={() => setComentarioCompleto(null)}
+                            title="Cerrar"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="modal-body">
+                        <div className="comentario-fecha">
+                            <strong>Fecha de devolución:</strong>{' '}
+                            {comentarioCompleto.fechaDevolucion
+                                ? new Date(comentarioCompleto.fechaDevolucion).toLocaleDateString('es-DO', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })
+                                : 'Sin fecha'}
+                        </div>
+
+                        <div className="comentario-texto-completo">
+                            {comentarioCompleto.comentario}
+                        </div>
+                    </div>
+
+                    <div className="modal-actions">
+                        <button
+                            className="btn-primary"
+                            onClick={() => setComentarioCompleto(null)}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ==================== RENDER PRINCIPAL ====================
+
     if (loading) return <p>Cargando solicitud...</p>;
     if (error && !archivosSeleccionados.length) return <p>Error: {error}</p>;
 
@@ -278,7 +530,7 @@ const RespuestaSolicitud = () => {
                         : 'Respuesta nueva solicitud'}
                 </h2>
 
-                {/* Datos del solicitante (Solo lectura) */}
+                {/* Datos del solicitante */}
                 <div className="form-group">
                     <label>Número de cédula</label>
                     <input
@@ -302,117 +554,13 @@ const RespuestaSolicitud = () => {
                 {/* Documentos */}
                 <div className="form-group">
                     <label>Documentos de la solicitud</label>
-                    {archivos.length > 0 ? (
-                        <div className="archivos-table">
-                            <div className="archivos-header">
-                                <div className="header-col">Documento</div>
-                                <div className="header-col-accion">Acción</div>
-                            </div>
-                            <div className="archivos-body">
-                                {archivos.map((archivo) => (
-                                    <div key={archivo.id} className="archivo-row">
-                                        <div className="archivo-nombre-col">{archivo.nombreOriginal}</div>
-                                        <div className="archivo-accion-col">
-                                            <a
-                                                href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}/ver`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title="Ver archivo"
-                                                className="icon-link"
-                                            >
-                                                <i className="bi bi-eye"></i>
-                                            </a>
-                                            <a
-                                                href={`${API_URL}/api/Solicitudes/archivo/${archivo.id}`}
-                                                download={archivo.nombreOriginal}
-                                                title="Descargar archivo"
-                                                className="icon-link"
-                                            >
-                                                <svg
-                                                    width="20"
-                                                    height="20"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                                </svg>
-                                            </a>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <p>No hay archivos cargados.</p>
-                    )}
+                    {renderDocumentos()}
                 </div>
 
-                {/* Historial de respuestas - CON MODAL */}
-                {solicitud.historial && solicitud.historial.length > 0 && (
-                    <div className="form-group">
-                        <label>Historial</label>
-                        <div className="historial-tabla">
-                            <div className="historial-header-row">
-                                <div className="historial-col-fecha">Fecha devolución</div>
-                                <div className="historial-col-comentario">Comentario</div>
-                                
-                            </div>
+                {/* Historial */}
+                {renderHistorial()}
 
-                            {solicitud.historial.map((item, index) => (
-                                <div key={index} className="historial-body-row">
-                                    {/* FECHA */}
-                                    <div className="historial-col-fecha-content">
-                                        {item.fechaDevolucion ? (
-                                            new Date(item.fechaDevolucion).toLocaleDateString('es-DO', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit'
-                                            })
-                                        ) : (
-                                            'Sin fecha'
-                                        )}
-                                    </div>
-
-                                    {/* Comentario truncado */}
-                                    <div className="historial-col-comentario-content">
-                                        {item.comentario && (
-                                            <div
-                                                className={`historial-texto-wrapper ${item.comentario.length > MAX_CARACTERES_COMENTARIO
-                                                    ? "clickeable"
-                                                    : ""
-                                                    }`}
-                                                onClick={() => {
-                                                    if (item.comentario.length > MAX_CARACTERES_COMENTARIO) {
-                                                        setComentarioCompleto(item);
-                                                    }
-                                                }}
-                                                title={
-                                                    item.comentario.length > MAX_CARACTERES_COMENTARIO
-                                                        ? "Ver comentario completo"
-                                                        : ""
-                                                }
-                                            >
-                                                <div className="historial-texto">
-                                                    {item.comentario.length > MAX_CARACTERES_COMENTARIO
-                                                        ? `${item.comentario.substring(0, MAX_CARACTERES_COMENTARIO)}...`
-                                                        : item.comentario}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Respuesta */}
+                {/* Tipo de respuesta */}
                 <div className="form-group">
                     <label>Respuesta a solicitud</label>
                     <select
@@ -421,109 +569,18 @@ const RespuestaSolicitud = () => {
                         disabled={enviando}
                     >
                         <option value="">Seleccione</option>
-                        <option value="correcciones">
+                        <option value={TIPOS_RESPUESTA.CORRECCIONES}>
                             Realizar correcciones
                         </option>
-                        <option value="certificacion">
+                        <option value={TIPOS_RESPUESTA.CERTIFICACION}>
                             Enviar certificación
                         </option>
                     </select>
                 </div>
 
-                {/* Campo Comentario - Solo si se selecciona "Realizar correcciones" */}
-                {respuesta === 'correcciones' && (
-                    <div className="form-group">
-                        <label>
-                            Comentarios <span className="required">*</span>
-                        </label>
-                        <textarea
-                            value={comentario}
-                            onChange={handleComentarioChange}
-                            placeholder={`Ingrese un comentario (mínimo ${COMENTARIO_MIN}, máximo ${COMENTARIO_MAX} caracteres)`}
-                            maxLength={COMENTARIO_MAX}
-                            disabled={enviando}
-                            rows={5}
-                        />
-                        <div className="caracteres-contador">
-                            {comentario.length}/{COMENTARIO_MAX} caracteres
-                        </div>
-                        {errores.comentario && (
-                            <div className="error-message">{errores.comentario}</div>
-                        )}
-                    </div>
-                )}
-
-                {/* Campo Archivos - Solo si se selecciona "Enviar certificación" */}
-                {respuesta === 'certificacion' && (
-                    <div className="form-group">
-                        <label>
-                            Cargar documentos <span className="required">*</span>
-                        </label>
-                        <div
-                            className={`upload-box ${isDragging ? 'dragging' : ''}`}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            onClick={() => !enviando && document.getElementById('file-upload').click()}
-                        >
-                            <input
-                                type="file"
-                                id="file-upload"
-                                onChange={handleFileChange}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                disabled={enviando}
-                                multiple
-                            />
-                            <svg
-                                className="upload-icon"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                />
-                            </svg>
-                            <p>{archivosSeleccionados.length > 0
-                                ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)`
-                                : "Arrastra o selecciona documentos"}
-                            </p>
-                            <small>Formatos permitidos: PDF, JPG, JPEG, PNG (máx. 5MB cada uno)</small>
-                        </div>
-
-                        {/* Mostrar error si existe */}
-                        {error && (
-                            <div className="error-message-archivos">
-                                {error}
-                            </div>
-                        )}
-
-                        {/* Lista de archivos seleccionados */}
-                        {archivosSeleccionados.length > 0 && (
-                            <div className="archivos-seleccionados-list">
-                                {archivosSeleccionados.map((archivo, index) => (
-                                    <div key={index} className="archivo-seleccionado-item">
-                                        <span className="archivo-seleccionado-nombre">{archivo.name}</span>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                eliminarArchivo(index);
-                                            }}
-                                            className="btn-eliminar-archivo"
-                                            disabled={enviando}
-                                        >
-                                            Eliminar
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {/* Secciones condicionales */}
+                {renderSeccionComentarios()}
+                {renderSeccionArchivos()}
 
                 {/* Acciones */}
                 <div className="botones-respuesta">
@@ -543,7 +600,7 @@ const RespuestaSolicitud = () => {
                     </button>
                 </div>
 
-                {/* MODAL DE ÉXITO */}
+                {/* Modales */}
                 <SuccessModal
                     message={success}
                     onClose={() => {
@@ -552,49 +609,7 @@ const RespuestaSolicitud = () => {
                     }}
                 />
 
-                {/* MODAL DE COMENTARIO COMPLETO */}
-                {comentarioCompleto && (
-                    <div className="modal-overlay" onClick={() => setComentarioCompleto(null)}>
-                        <div className="modal modal-comentario" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
-                                <h3>Comentario completo</h3>
-                                <button
-                                    className="modal-close-btn"
-                                    onClick={() => setComentarioCompleto(null)}
-                                    title="Cerrar"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            <div className="modal-body">
-                                <div className="comentario-fecha">
-                                    <strong>Fecha de devolución:</strong>{' '}
-                                    {comentarioCompleto.fechaDevolucion
-                                        ? new Date(comentarioCompleto.fechaDevolucion).toLocaleDateString('es-DO', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })
-                                        : 'Sin fecha'}
-                                </div>
-
-                                <div className="comentario-texto-completo">
-                                    {comentarioCompleto.comentario}
-                                </div>
-                            </div>
-
-                            <div className="modal-actions">
-                                <button
-                                    className="btn-primary"
-                                    onClick={() => setComentarioCompleto(null)}
-                                >
-                                    Cerrar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {renderModalComentario()}
             </div>
         </div>
     );
